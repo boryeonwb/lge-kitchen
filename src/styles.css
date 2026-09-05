@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+/* 내부 정산 대시보드와 같은 색 체계 — 두 화면을 나란히 놓고 대조하는 일이 많다. */
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+
+  --color-hdr: #305496;
+  --color-hdr-deep: #26456f;
+
+  --color-tot: #fff2cc;
+  --color-danger: #c00000;
+  --color-gain: #006300;
+
+  --color-surface: #ffffff;
+  --color-plane: #f4f5f7;
+  --color-line: #d9d9d9;
+  --color-ink: #1b1b1b;
+  --color-ink2: #55565a;
+  --color-muted: #8a8b90;
+
+  --color-warn-bg: #fff4e5;
+  --color-warn-line: #f0c99a;
+  --color-warn-ink: #a04b00;
+  --color-fx-ink: #7a5a10;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-plane);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ── 표: 엑셀 룩 (sticky 헤더 + 왼쪽 열 고정) ─────────────────────────────
+   Tailwind 유틸로는 표현이 어려운 sticky 좌표/구분선만 여기에 둔다. */
+.tbl {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  background: var(--color-surface);
+}
+
+.tbl thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--color-hdr);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+  padding: 7px 6px;
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom: 1px solid var(--color-hdr);
+  white-space: pre-line;
+  user-select: none;
+}
+
+/* 열 묶음 헤더 — 헤더가 2줄이라 sticky 좌표를 나눠 준다.
+   1줄: 묶음 라벨(top 0) / 2줄: 열 이름(묶음 행 높이만큼 내려서 고정)
+   묶음이 없는 표(.nogroup)는 헤더가 한 줄이라 그대로 top 0 이다. */
+.tbl thead tr.grouprow th {
+  top: 0;
+  z-index: 6;
+  height: 24px;
+  padding: 4px 6px;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+}
+.tbl:not(.nogroup) thead tr:not(.grouprow) th {
+  top: 24px;
+  z-index: 4;
+}
+.tbl thead th.gh-inv { background: #2f5d8a; }
+.tbl thead th.gh-tax { background: #8a6a1f; }
+
+.tbl td {
+  padding: 4px 6px;
+  border-right: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tbl tbody tr:nth-child(even) td { background: #fbfcfd; }
+.tbl tbody tr:hover td { background: #eef4fc; }
+
+/* 열 묶음 배경 — 인보이스에서 읽은 값과 세금계산서로 나가는 값을 색으로 가른다.
+   지브라·hover 보다 뒤에 두고 상태별로 명시해야 덮이지 않는다. */
+.tbl tbody tr td.g-inv                  { background: #f2f7fc; }
+.tbl tbody tr:nth-child(even) td.g-inv  { background: #eaf1f9; }
+.tbl tbody tr:hover td.g-inv            { background: #dfeaf6; }
+.tbl tbody tr td.g-tax                  { background: #fffaea; }
+.tbl tbody tr:nth-child(even) td.g-tax  { background: #fdf5df; }
+.tbl tbody tr:hover td.g-tax            { background: #fbeec6; }
+
+/* 청구하지 않는 매체비(광고주계정) — 수수료 산정 기준일 뿐이라 회색으로 죽여 둔다.
+   g-tax 배경보다 뒤에 와야 덮인다. */
+.tbl tbody tr td.g-tax.notbilled,
+.tbl tbody tr:nth-child(even) td.g-tax.notbilled { background: #eceef1; color: var(--color-muted); }
+.tbl tbody tr:hover td.g-tax.notbilled           { background: #e2e5e9; }
+
+.tbl tr.sub td {
+  background: var(--color-tot) !important;
+  font-weight: 700;
+}
+
+.tbl tr.grand td {
+  background: #fff !important;
+  font-weight: 700;
+  color: var(--color-danger);
+  border-top: 2px solid var(--color-danger);
+}
+
+/* 왼쪽 열 고정 — left 값은 렌더 후 실측해서 인라인으로 채운다.
+   세로(헤더)·가로(왼쪽) 고정이 겹치는 칸은 z-index 를 더 높여야 일반 셀 위로 올라온다. */
+.tbl th.fz { position: sticky; z-index: 5; }
+.tbl thead tr.grouprow th.fz { z-index: 8; }
+.tbl thead tr:not(.grouprow) th.fz { z-index: 7; }
+.tbl td.fz { position: sticky; z-index: 2; background: var(--color-surface); }
+.tbl th.fz-last { border-right: 2px solid #1f3a63; }
+.tbl td.fz-last { border-right: 2px solid #9aa3ad; }
+
+/* 세로 스크롤 영역: 가로 스크롤바는 표 위(.hstop)에만 노출 */
+.scroll { overflow: auto; max-height: calc(100vh - 250px); }
+.scroll::-webkit-scrollbar { width: 12px; height: 0; }
+.scroll::-webkit-scrollbar-track { background: #f1f2f4; }
+.scroll::-webkit-scrollbar-thumb {
+  background: #c2c4c9;
+  border-radius: 6px;
+  border: 3px solid #f1f2f4;
+}
+
+.hstop {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 14px;
+  background: #f1f2f4;
+  border-bottom: 1px solid var(--color-line);
+}
+.hstop::-webkit-scrollbar { height: 11px; }
+.hstop::-webkit-scrollbar-track { background: #f1f2f4; }
+.hstop::-webkit-scrollbar-thumb {
+  background: #b6b9c0;
+  border-radius: 6px;
+  border: 2px solid #f1f2f4;
+}
+
+@media print {
+  header,
+  nav,
+  .toolbar {
+    display: none;
+  }
+  .scroll { max-height: none; overflow: visible; }
+}

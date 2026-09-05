@@ -1,0 +1,30 @@
+# lge-adv-dashboard — wisebirds-ax/argocd-app-chart override.
+#
+# image.repository / nameOverride / ingress 는 ApplicationSet 가 자동 주입
+# (host: lge-adv-dashboard.wisebirds.ai).
+#
+# 이 앱은 **프런트만** 있다. 숫자는 lge-billing-dashboard 백엔드에서 오고,
+# nginx 가 /api 를 그 백엔드로 프록시한다 → backend 컴포넌트도 PVC 도 없다.
+# 데이터를 복제하지 않는 이유: 사람이 UI 에서 넣은 값(HSAD 내부환율·매체비/수수료
+# 수기수정·발행월·품의환율·월별 원통화)이 그쪽 PVC 에만 있어서, 복제하면 광고주
+# 화면이 내부 화면과 조용히 어긋난다.
+
+components:
+  frontend:
+    env:
+      - { name: TZ,   value: Asia/Seoul }
+      - { name: PORT, value: "3000" }
+      - { name: HOST, value: 0.0.0.0 }
+      # 정산 백엔드의 클러스터 내부 주소. 서비스 이름이 다르면 여기만 고친다.
+      # (같은 네임스페이스가 아니면 <svc>.<namespace>.svc.cluster.local:8000,
+      #  클러스터 밖이면 https://lge-billing-dashboard.wisebirds.ai 로 둬도 된다)
+      - { name: API_UPSTREAM, value: "http://lge-billing-dashboard-backend:8000" }
+    # nginx.conf 가 /healthz 를 제공하므로 tcpSocket 대신 실제 응답을 본다.
+    readinessProbe:
+      httpGet: { path: /healthz, port: http }
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    livenessProbe:
+      httpGet: { path: /healthz, port: http }
+      initialDelaySeconds: 30
+      periodSeconds: 30
