@@ -183,7 +183,8 @@ export function CarryModal({
             저장되는 건 금액이 아니라 <b className="font-semibold text-graphite">잔여액 대비 비율</b>
             입니다. 환율이 갱신되면 소진 KRW 가 달라져 잔여액도 움직이는데, 금액을 굳혀 두면 그때부터
             배분 합이 어긋납니다. 비율로 두면 지정한 배분이 그대로 따라갑니다 ·{" "}
-            <b className="font-semibold text-graphite">화면 계산</b>이라 서버에 저장되지 않습니다.
+            <b className="font-semibold text-graphite">저장되어 같이 보는 사람 모두에게 반영</b>
+            됩니다. 실제 품의·매체 세팅을 바꾸는 것은 아니고, 이 화면의 계산 기준입니다.
           </p>
 
           <div className="mt-4 flex items-center gap-2">

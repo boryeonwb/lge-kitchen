@@ -1,7 +1,8 @@
 /**
  * lge-billing-dashboard 백엔드의 `/api/adv/*` 페이로드 계약 (backend/adv.py).
  *
- * 읽기 전용이다 — 이 앱에는 쓰기 경로가 없다. 백엔드가 화이트리스트로 골라 보내므로
+ * 쓰는 값은 **잔여금 이관 계획 하나뿐**이다(`saveCarry`). 그 밖은 전부 읽기만 한다.
+ * 백엔드가 화이트리스트로 골라 보내므로
  * 여기 없는 열(청구율·내부 최종금액·차액·수익/손실·계정ID·비고·메모 등)은 애초에
  * 브라우저까지 오지 않는다.
  */
@@ -166,6 +167,41 @@ export interface OpsRow {
   sheetRatio?: number | null
 }
 
+/** 잔여금 이관 배분 — `출발 행 id → { 도착 행 id: 잔여액 대비 비율 }` */
+export type CarryPlans = Record<string, Record<string, number>>
+
+/**
+ * 이관 계획을 저장한다 — 이 앱이 유일하게 쓰는 값.
+ *
+ * 화면 안에만 두면 새로고침에 사라지고, 같이 보는 사람마다 다른 화면을 본다.
+ * `share` 가 비면 그 라인의 이관을 푼다.
+ */
+export async function saveCarry(
+  id: string,
+  share: Record<string, number> | null,
+): Promise<{ plans: CarryPlans; savedAt: string }> {
+  const res = await fetch(`${API_BASE}/carry`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, share: share || {} }),
+  })
+  const d = await res.json().catch(() => ({}))
+  if (!res.ok || d.ok === false) throw new Error(d.msg || `${res.status}`)
+  return d
+}
+
+/** 이관을 전부 푼다 */
+export async function clearCarry(): Promise<{ plans: CarryPlans; savedAt: string }> {
+  const res = await fetch(`${API_BASE}/carry`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clear: true }),
+  })
+  const d = await res.json().catch(() => ({}))
+  if (!res.ok || d.ok === false) throw new Error(d.msg || `${res.status}`)
+  return d
+}
+
 export interface OpsPayload {
   rows: OpsRow[]
   today: string
@@ -173,6 +209,8 @@ export interface OpsPayload {
   closedMonth: string
   mix: { fetchedAt: string; n: number; totalUsd: number }
   /** Criteo 실시간 소진 시트 — 어디까지 담겼는지와, 캠페인명으로 못 붙인 것들 */
+  /** 저장된 잔여금 이관 배분 — 같이 보는 사람 모두 같은 값을 본다 */
+  carry: { plans: CarryPlans; savedAt: string }
   sheet: {
     asOf: string
     fetchedAt: string

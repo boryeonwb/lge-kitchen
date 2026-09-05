@@ -405,7 +405,7 @@ export function SettlementView({ D }: { D: SettlePayload }) {
             <li>
               <b className="font-semibold">최종 발행 금액</b> = 매체비KRW + 수수료KRW. (단
               처리주체가 <b className="font-semibold">HSAD(광고주계정)</b>인 행은 매체비를 광고주가
-              매체에 직접 지불하므로 수수료만 발행, 그 행의 매체비 칸은 흐리게 표시)
+              매체에 직접 지불하므로 수수료만 발행)
             </li>
             <li>
               <b className="font-semibold">전체 인보이스 금액</b>은 그 라인이 속한 인보이스의 발행

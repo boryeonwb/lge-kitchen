@@ -5,7 +5,7 @@ export interface SortState {
   dir: number
 }
 
-/** 화면 상태 — 읽기 전용 앱이라 저장 콜백이 없다. 필터·정렬·월 선택·CSV 뿐이다. */
+/** 화면 상태 — 필터·정렬·월 선택·CSV. 서버에 남는 값(이관 배분)은 여기 두지 않는다. */
 export interface ViewCtx {
   /** 현재 탭 — 정렬 상태의 기본 키 */
   tab: string

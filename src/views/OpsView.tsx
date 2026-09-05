@@ -38,7 +38,7 @@ function SrcValue({ src, mon, text }: { src?: string; mon: string; text: string 
   )
 }
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DataTable, type Col, type TableRow } from "#/components/DataTable"
 import {
   Copyable,
@@ -50,6 +50,7 @@ import {
   pickSet,
 } from "#/components/ui"
 import type { OpsPayload } from "#/lib/api"
+import { clearCarry, saveCarry } from "#/lib/api"
 import { CarryModal } from "#/components/CarryModal"
 import { applyCarry, moved, type CarryPlan, type CarryRow } from "#/lib/carry"
 import { useView } from "#/lib/view"
@@ -231,7 +232,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
   {
     k: "natTotal",
     l: "소진액\n(통화)",
-    w: 78,
+    w: 72,
     cls: "text-right",
     // 계획(자동기입)은 실적이 아니므로 빼고 더한 값이다
     fmt: (v) => (v ? <span title="확정 + 수기 + 시트 · 계획은 제외">{f2(v)}</span> : ""),
@@ -240,7 +241,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
   {
     k: "spentEffKrw",
     l: "소진액\n(KRW)",
-    w: 86,
+    w: 92,
     cls: "text-right",
     fmt: (v, r) => {
       if (!v) return ""
@@ -340,7 +341,33 @@ export function OpsView({ D }: { D: OpsPayload }) {
   const onlyLive = filt.opsLive === "1"
 
   // 이관 배분은 [이관] 팝업에서 정한다. 이 화면이 들고 있고 서버에 쓰지 않는다.
-  const [plans, setPlans] = useState<CarryPlan>({})
+  // 서버에 저장된 배분으로 시작한다 — 새로고침해도, 다른 사람이 열어도 같은 화면이다.
+  // 페이로드에 같이 실려 오므로 이관 없는 숫자가 한 번 스쳐 지나가지 않는다.
+  const [plans, setPlans] = useState<CarryPlan>(D.carry?.plans || {})
+  const [saving, setSaving] = useState(false)
+  const [saveErr, setSaveErr] = useState("")
+
+  // 새로고침으로 페이로드가 바뀌면 서버 값을 다시 따른다. 그 사이 다른 사람이
+  // 바꿨을 수 있는데, 화면에 남은 옛 배분을 붙들면 둘이 어긋난 채로 계산된다.
+  useEffect(() => {
+    setPlans(D.carry?.plans || {})
+  }, [D.carry])
+
+  /** 저장이 실패하면 화면도 되돌린다 — 저장된 줄 알고 공유하면 그게 더 나쁘다 */
+  const persist = async (next: CarryPlan, run: () => Promise<unknown>) => {
+    const prev = plans
+    setPlans(next)
+    setSaving(true)
+    setSaveErr("")
+    try {
+      await run()
+    } catch (e) {
+      setPlans(prev)
+      setSaveErr(`이관을 저장하지 못했습니다 — ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setSaving(false)
+    }
+  }
   const [editId, setEditId] = useState<string | null>(null)
   const [open, setOpen] = useState<Set<string>>(new Set())
   const toggleRow = (id: string) =>
@@ -486,7 +513,8 @@ const cols = [CHECK_COL(plans, setEditId), ...BASE_COLS, CARRY_COL, ...TOTAL_COL
         {Object.keys(plans).length ? (
           <button
             type="button"
-            onClick={() => setPlans({})}
+            disabled={saving}
+            onClick={() => void persist({}, () => clearCarry())}
             className="pill cursor-pointer whitespace-nowrap px-3 py-2 text-[12px] text-fog hover:bg-cream"
           >
             이관 전체 해제 ({Object.keys(plans).length})
@@ -511,6 +539,10 @@ const cols = [CHECK_COL(plans, setEditId), ...BASE_COLS, CARRY_COL, ...TOTAL_COL
         </Hint>
       </Toolbar>
 
+      {saveErr ? (
+        <div className="mb-3 rounded-[12px] bg-blush px-5 py-3 text-[12.5px]">{saveErr}</div>
+      ) : null}
+
       <div className="mb-3 text-[12px] leading-[1.6] text-fog">
         행을 누르면 아래에 <b className="font-semibold">월별 소진</b>이 펼쳐집니다 · 월별 값은
         한 달에 하나 — <b className="font-semibold">확정</b>(인보이스) &gt;{" "}
@@ -525,7 +557,9 @@ const cols = [CHECK_COL(plans, setEditId), ...BASE_COLS, CARRY_COL, ...TOTAL_COL
         )
         &gt; <i>계획</i>(실적 아님) · <b className="font-semibold">세팅 일예산은 Criteo 만</b>{" "}
         냅니다 — (품의예산 KRW − 실소진 KRW) ÷ 환율 ÷ 잔여일 · 왼쪽 <b className="font-semibold">[이관]</b> 버튼으로
-        어느 라인에 얼마를 넣을지 지정하면 <b className="font-semibold">다음 Phase</b> 로 넘어갑니다(화면 계산)
+        어느 라인에 얼마를 넣을지 지정하면 <b className="font-semibold">다음 Phase</b> 로 넘어갑니다 ·
+        이관은 <b className="font-semibold">저장돼 같이 보는 사람 모두에게 반영</b>됩니다
+        {D.carry?.savedAt ? ` (마지막 저장 ${D.carry.savedAt})` : ""}
       </div>
 
       <div className="overflow-hidden rounded-[12px] bg-paper shadow-soft">
@@ -547,15 +581,13 @@ const cols = [CHECK_COL(plans, setEditId), ...BASE_COLS, CARRY_COL, ...TOTAL_COL
           share={plans[editRow.id]}
           onClose={() => setEditId(null)}
           onSave={(share) => {
-            setPlans((p) => ({ ...p, [editRow.id]: share }))
+            void persist({ ...plans, [editRow.id]: share }, () => saveCarry(editRow.id, share))
             setEditId(null)
           }}
           onClear={() => {
-            setPlans((p) => {
-              const n = { ...p }
-              delete n[editRow.id]
-              return n
-            })
+            const n = { ...plans }
+            delete n[editRow.id]
+            void persist(n, () => saveCarry(editRow.id, null))
             setEditId(null)
           }}
         />
