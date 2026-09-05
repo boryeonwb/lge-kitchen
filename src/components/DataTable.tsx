@@ -59,8 +59,6 @@ interface Props {
    * 열이 서른 개 넘던 표를 두 열로 접고, 세부는 여기로 내렸다.
    */
   detailRows?: (r: TableRow) => TableRow[]
-  /** 셀을 눌렀을 때. 수정 가능한 칸만 반응하도록 열 정의를 함께 넘긴다 */
-  onCellClick?: (r: TableRow, c: Col) => void
   /** 펼친 행 id 집합과 토글 — 상태는 화면이 들고 있는다(정렬·필터에도 살아남게) */
   expanded?: Set<string>
   onToggle?: (id: string) => void
@@ -98,7 +96,6 @@ export function DataTable({
   freeze,
   grouped,
   detailRows,
-  onCellClick,
   expanded,
   onToggle,
 }: Props) {
@@ -270,7 +267,6 @@ export function DataTable({
                     {cols.map((c) => (
                       <td
                         key={c.id ?? c.k}
-                        onClick={onCellClick ? () => onCellClick(r, c) : undefined}
                         className={cn(
                           c.grp ? COL_GROUPS[c.grp]?.cell : undefined,
                           c.cls,

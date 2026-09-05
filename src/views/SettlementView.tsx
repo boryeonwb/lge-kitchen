@@ -1,6 +1,4 @@
-import { useState } from "react"
 import { DataTable, type Col, type TableRow } from "#/components/DataTable"
-import { TaxOverrideModal } from "#/components/TaxOverrideModal"
 import {
   Card,
   CountryCell,
@@ -13,16 +11,8 @@ import {
   Toolbar,
   pickSet,
 } from "#/components/ui"
-import type { SettlePayload } from "#/lib/api"
-import {
-  applyOverrides,
-  clearOverride,
-  loadStore,
-  ovTitle,
-  saveOverride,
-  type SettleRowX,
-  type TaxOvStore,
-} from "#/lib/taxov"
+import type { SettleRow, SettlePayload } from "#/lib/api"
+import { ovTitle } from "#/lib/taxov"
 import { useView } from "#/lib/view"
 import { ISSLBL, MONLBL, eok, f0, f2, issMatch, issValues } from "#/lib/format"
 
@@ -38,9 +28,9 @@ import { ISSLBL, MONLBL, eok, f0, f2, issMatch, issValues } from "#/lib/format"
  */
 
 /** 매체비를 실제로 청구하지 않는 행(HSAD) — 회색으로 구분한다 */
-const notBilled = (r: SettleRowX) => (r.owner === "HSAD" ? "notbilled" : "")
+const notBilled = (r: SettleRow) => (r.owner === "HSAD" ? "notbilled" : "")
 
-const COLS: Col<SettleRowX>[] = [
+const COLS: Col<SettleRow>[] = [
   { k: "sol", l: "솔루션", w: 92 },
   {
     k: "phase",
@@ -94,62 +84,63 @@ const COLS: Col<SettleRowX>[] = [
     fmt: (v) => (v === null || v === undefined ? <span className="text-[11px] text-fog">미입력</span> : f2(v)),
     csv: (v) => (v === null || v === undefined ? "미입력" : f2(v)),
   },
-  // 아래 세 열은 수기 수정이 반영된 값(…Adj)을 읽는다. 수정된 행은 ✎ 와 노란 배경으로
-  // 드러내고, 마우스를 올리면 담당자·사유·처리방안·이력이 그대로 보인다.
+  // 아래 세 열은 **내부 정산 대시보드에서 수기로 고친 값**이 이미 반영돼 내려온다.
+  // 고쳐진 칸은 ✎ 와 노란 배경으로 드러내고, 마우스를 올리면 수정자·사유·시각과
+  // 이전 이력이 보인다. 이 화면에서는 고칠 수 없다 — 기록은 내부 한 곳에만 둔다.
   {
-    k: "billMediaAdj",
+    k: "billMedia",
     l: "매체비KRW",
     w: 122,
-    cls: "text-right editable",
+    cls: "text-right",
     grp: "tax",
     cellCls: (r) =>
-      [notBilled(r), r.ov?.media != null || r.srvOv?.media != null ? "edited" : ""]
+      [notBilled(r), r.taxOv?.media != null ? "edited" : ""]
         .filter(Boolean)
         .join(" "),
     fmt: (v, r) => (
       <span
         title={
-          r.ov || r.srvOv
-            ? ovTitle(r.srvOv, r.ov)
+          r.taxOv
+            ? ovTitle(r.taxOv)
             : r.owner === "HSAD"
-              ? "광고주계정 — 매체비는 광고주가 매체에 직접 지불합니다. 수수료 산정 기준일 뿐 발행 금액에 들어가지 않습니다 · 눌러서 수정"
-              : "눌러서 수정"
+              ? "광고주계정 — 매체비는 광고주가 매체에 직접 지불합니다. 수수료 산정 기준일 뿐 발행 금액에 들어가지 않습니다"
+              : undefined
         }
       >
-        {r.ov?.media != null || r.srvOv?.media != null ? "✎ " : ""}
+        {r.taxOv?.media != null ? "✎ " : ""}
         {f0(v)}
       </span>
     ),
     csv: f0,
   },
   {
-    k: "billFeeAdj",
+    k: "billFee",
     l: "와이즈버즈\n수수료KRW",
     w: 118,
-    cls: "text-right editable",
+    cls: "text-right",
     grp: "tax",
-    cellCls: (r) => (r.ov?.fee != null || r.srvOv?.fee != null ? "edited" : ""),
+    cellCls: (r) => (r.taxOv?.fee != null ? "edited" : ""),
     fmt: (v, r) => (
-      <span title={r.ov || r.srvOv ? ovTitle(r.srvOv, r.ov) : "눌러서 수정"}>
-        {r.ov?.fee != null || r.srvOv?.fee != null ? "✎ " : ""}
+      <span title={r.taxOv ? ovTitle(r.taxOv) : undefined}>
+        {r.taxOv?.fee != null ? "✎ " : ""}
         {f0(v)}
       </span>
     ),
     csv: f0,
   },
   {
-    k: "taxKrwAdj",
+    k: "taxKrw",
     l: "최종 세금계산서\n발행 금액",
     w: 138,
-    cls: "text-right editable",
+    cls: "text-right",
     grp: "tax",
-    cellCls: (r) => (r.ov || r.srvOv ? "edited" : ""),
+    cellCls: (r) => (r.taxOv ? "edited" : ""),
     fmt: (v, r) => (
       <b
         title={
-          r.ov || r.srvOv
-            ? ovTitle(r.srvOv, r.ov)
-            : (r.owner === "HSAD" ? "수수료KRW" : "매체비KRW + 수수료KRW") + " · 눌러서 수정"
+          r.taxOv
+            ? ovTitle(r.taxOv)
+            : r.owner === "HSAD" ? "수수료KRW" : "매체비KRW + 수수료KRW"
         }
       >
         {f0(v)}
@@ -192,7 +183,7 @@ const COLS: Col<SettleRowX>[] = [
   },
 ]
 
-const MON_COL: Col<SettleRowX> = {
+const MON_COL: Col<SettleRow> = {
   k: "mon",
   l: "월",
   w: 62,
@@ -202,14 +193,14 @@ const MON_COL: Col<SettleRowX> = {
 }
 
 /** KRW 열 합계 — 원화라 그냥 더하면 된다 */
-const sumKrw = (rows: SettleRowX[], k: "billMediaAdj" | "billFeeAdj" | "taxKrwAdj") =>
+const sumKrw = (rows: SettleRow[], k: "billMedia" | "billFee" | "taxKrw") =>
   rows.reduce((a, r) => a + (r[k] || 0), 0)
 
 /**
  * 광고비net 합계 — 인보이스 통화 그대로라 통화가 섞이면 단순 합이 의미 없다.
  * 통화별로 나눠 더하고, 한 가지뿐일 때만 숫자만 보여준다.
  */
-function sumNative(rows: SettleRowX[]): { text: string; cur: string } {
+function sumNative(rows: SettleRow[]): { text: string; cur: string } {
   const by: Record<string, number> = {}
   for (const r of rows) by[r.cur] = (by[r.cur] || 0) + (r.billed || 0)
   const es = Object.entries(by)
@@ -226,16 +217,16 @@ function sumNative(rows: SettleRowX[]): { text: string; cur: string } {
 }
 
 /** 소계·총계 한 줄. 값은 이미 포맷된 문자열이라 열 fmt 를 타지 않는다. */
-function totalRow(label: string, rows: SettleRowX[], type: "sub" | "grand" = "grand"): TableRow {
+function totalRow(label: string, rows: SettleRow[], type: "sub" | "grand" = "grand"): TableRow {
   const nat = sumNative(rows)
   return {
     __type: type,
     sol: label,
     cur: nat.cur,
     billed: nat.text,
-    billMediaAdj: f0(sumKrw(rows, "billMediaAdj")),
-    billFeeAdj: f0(sumKrw(rows, "billFeeAdj")),
-    taxKrwAdj: f0(sumKrw(rows, "taxKrwAdj")),
+    billMedia: f0(sumKrw(rows, "billMedia")),
+    billFee: f0(sumKrw(rows, "billFee")),
+    taxKrw: f0(sumKrw(rows, "taxKrw")),
   }
 }
 
@@ -243,14 +234,9 @@ export function SettlementView({ D }: { D: SettlePayload }) {
   const { mon, filt } = useView()
   const monLab = mon ? MONLBL(mon) : "전체월"
 
-  // 수기 수정은 이 브라우저에만 남는다(서버에 쓰지 않는다) — lib/taxov.ts 참고
-  const [store, setStore] = useState<TaxOvStore>(loadStore)
-  const [editId, setEditId] = useState<string | null>(null)
-  const all = applyOverrides(D.rows, store)
-
   // 드롭다운은 연쇄 구조 — 월 → 솔루션 → 매체 → 국가 → Phase → 발행월 순으로
   // 실제 존재하는 값만 남긴다. 앞 선택이 바뀌면 뒤 후보도 같이 줄어든다.
-  const pool = all.filter((r) => !mon || r.mon === mon)
+  const pool = D.rows.filter((r) => !mon || r.mon === mon)
 
   const sols = [...new Set(pool.map((r) => r.sol))].sort(
     (a, b) => pool.find((r) => r.sol === a)!.solOrd - pool.find((r) => r.sol === b)!.solOrd,
@@ -295,7 +281,7 @@ export function SettlementView({ D }: { D: SettlePayload }) {
   // 솔루션 소계 + 총계
   const out: TableRow[] = []
   let cur: string | null = null
-  let bucket: SettleRowX[] = []
+  let bucket: SettleRow[] = []
   const pushSub = () => {
     if (cur !== null) out.push(totalRow(`${cur} 소계`, bucket, "sub"))
   }
@@ -311,12 +297,11 @@ export function SettlementView({ D }: { D: SettlePayload }) {
   pushSub()
   out.push(totalRow(`${monLab} 합계`, rows))
 
-  const gTax = sumKrw(rows, "taxKrwAdj")
-  const gFee = sumKrw(rows, "billFeeAdj")
+  const gTax = sumKrw(rows, "taxKrw")
+  const gFee = sumKrw(rows, "billFee")
   const nIssued = rows.filter((r) => r.issuedMonth).length
-  const nOv = rows.filter((r) => r.ov || r.srvOv).length
+  const nOv = rows.filter((r) => r.taxOv).length
 
-  const editRow = editId ? all.find((r) => r.id === editId) : undefined
   const cols = mon ? COLS : [MON_COL, ...COLS]
   const freeze = mon ? 4 : 5 // (월 +) 솔루션 · Phase · 매체 · 국가
 
@@ -383,32 +368,9 @@ export function SettlementView({ D }: { D: SettlePayload }) {
           </>
         }
       >
-        <DataTable
-          cols={cols}
-          rows={out}
-          nosort
-          freeze={freeze}
-          grouped
-          onCellClick={(r, c) =>
-            c.cls?.includes("editable") ? setEditId((r as SettleRowX).id) : undefined
-          }
-        />
+        <DataTable cols={cols} rows={out} nosort freeze={freeze} grouped />
       </Card>
 
-      {editRow ? (
-        <TaxOverrideModal
-          row={editRow}
-          onClose={() => setEditId(null)}
-          onSave={(e) => {
-            setStore(saveOverride(store, editRow.id, e))
-            setEditId(null)
-          }}
-          onClear={() => {
-            setStore(clearOverride(store, editRow.id))
-            setEditId(null)
-          }}
-        />
-      ) : null}
     </>
   )
 }
