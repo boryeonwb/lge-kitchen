@@ -24,7 +24,7 @@ export interface Col<R = any> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type TableRow = Record<string, any> & {
   /** 소계행 / 총계행 — 값은 이미 포맷된 문자열이라 fmt 를 타지 않는다 */
-  __type?: "sub" | "grand"
+  __type?: "sub" | "grand" | "detail"
 }
 
 /** 열 묶음 — 라벨과 색. 정산 탭의 두 묶음을 색으로 가른다. */
@@ -58,7 +58,7 @@ interface Props {
    * 행을 눌렀을 때 바로 아래에 펼칠 내용. 주면 그 행이 클릭 가능해진다.
    * 열이 서른 개 넘던 표를 두 열로 접고, 세부는 여기로 내렸다.
    */
-  renderDetail?: (r: TableRow) => ReactNode
+  detailRows?: (r: TableRow) => TableRow[]
   /** 펼친 행 id 집합과 토글 — 상태는 화면이 들고 있는다(정렬·필터에도 살아남게) */
   expanded?: Set<string>
   onToggle?: (id: string) => void
@@ -95,7 +95,7 @@ export function DataTable({
   nosort,
   freeze,
   grouped,
-  renderDetail,
+  detailRows,
   expanded,
   onToggle,
 }: Props) {
@@ -128,10 +128,7 @@ export function DataTable({
         touched.push(el)
       }
       mark(ths[i])
-      for (const row of Array.from(tb.tBodies[0].rows)) {
-        if (row.classList.contains("detail")) continue // colSpan 한 칸짜리 상세 행
-        mark(row.cells[i])
-      }
+      for (const row of Array.from(tb.tBodies[0].rows)) mark(row.cells[i])
       widths.push(w)
       x += w
     }
@@ -264,8 +261,8 @@ export function DataTable({
               return (
                 <Fragment key={id}>
                   <tr
-                    className={cn(renderDetail && "cursor-pointer", open && "opened")}
-                    onClick={renderDetail ? () => onToggle?.(id) : undefined}
+                    className={cn(detailRows && "cursor-pointer", open && "opened")}
+                    onClick={detailRows ? () => onToggle?.(id) : undefined}
                   >
                     {cols.map((c) => (
                       <td
@@ -280,11 +277,17 @@ export function DataTable({
                       </td>
                     ))}
                   </tr>
-                  {open && renderDetail ? (
-                    <tr className="detail">
-                      <td colSpan={cols.length}>{renderDetail(r)}</td>
-                    </tr>
-                  ) : null}
+                  {open && detailRows
+                    ? detailRows(r).map((d, k) => (
+                        <tr key={`${id}-d${k}`} className="detail">
+                          {cols.map((c) => (
+                            <td key={c.id ?? c.k} className={c.cls}>
+                              {d[c.k] !== undefined ? d[c.k] : ""}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    : null}
                 </Fragment>
               )
             })}
