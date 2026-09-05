@@ -220,6 +220,8 @@ export interface Kpi {
   v: ReactNode
   u?: string
   s: ReactNode
+  /** 마우스를 올렸을 때 보일 산식·근거. 화면은 숫자만 두고 근거는 여기 담는다 */
+  title?: string
 }
 
 /** KPI — 세리프가 감정 노동을 하는 자리. 숫자만 40px 디스플레이로 올린다. */
@@ -227,7 +229,7 @@ export function KpiCards({ items }: { items: Kpi[] }) {
   return (
     <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
       {items.map((it) => (
-        <div key={it.k} className="rounded-[12px] bg-paper px-6 py-5 shadow-soft">
+        <div key={it.k} title={it.title} className="rounded-[12px] bg-paper px-6 py-5 shadow-soft">
           <div className="text-[11px] tracking-[0.08em] text-fog uppercase">{it.k}</div>
           {/* 정확한 원 단위 금액은 열 자리를 넘어간다 — 길이에 따라 크기를 내려
               카드 밖으로 넘치거나 줄바꿈되지 않게 한다 */}

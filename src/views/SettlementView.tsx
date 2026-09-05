@@ -305,13 +305,13 @@ export function SettlementView({ D }: { D: SettlePayload }) {
 
   const gTax = sumKrw(rows, "taxKrw")
   const gFee = sumKrw(rows, "billFee")
-  // HSAD 수수료 = 세금계산서 발행의 매체비KRW × 13%. 기준이 되는 매체비도 같이
-  // 보여 준다 — 비율 하나로 나온 값이라 근거가 안 보이면 대조할 수가 없다.
+  // HSAD 수수료 = 세금계산서 발행의 매체비KRW × 13%.
+  // 밑줄은 다른 박스와 같은 억원 표기로 두고, 산식은 카드 툴팁에 담는다 —
+  // 네 박스가 같은 모양이어야 나란히 읽힌다.
   const gMedia = sumKrw(rows, "billMedia")
   const HSAD_RATE = 0.13
   const gHsad = Math.round(gMedia * HSAD_RATE)
   const nIssued = rows.filter((r) => r.issuedMonth).length
-  const nOv = rows.filter((r) => r.taxOv).length
 
   const cols = mon ? COLS : [MON_COL, ...COLS]
   const freeze = mon ? 4 : 5 // (월 +) 솔루션 · Phase · 매체 · 국가
@@ -324,7 +324,7 @@ export function SettlementView({ D }: { D: SettlePayload }) {
             k: `${monLab} 세금계산서 발행 금액`,
             v: f0(gTax),
             u: "원",
-            s: `${eok(gTax)}억원${nOv ? ` · 수기 수정 ${nOv}행 반영됨` : ""}`,
+            s: `${eok(gTax)}억원`,
           },
           {
             k: "와이즈버즈 수수료",
@@ -336,7 +336,8 @@ export function SettlementView({ D }: { D: SettlePayload }) {
             k: "HSAD 수수료",
             v: f0(gHsad),
             u: "원",
-            s: `매체비KRW ${f0(gMedia)}원 × ${HSAD_RATE * 100}%`,
+            s: `${eok(gHsad)}억원`,
+            title: `세금계산서 발행의 매체비KRW ${f0(gMedia)}원 × ${HSAD_RATE * 100}%`,
           },
           {
             k: "세금계산서 발행",
