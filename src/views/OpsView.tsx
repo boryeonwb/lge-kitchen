@@ -38,7 +38,7 @@ function SrcValue({ src, mon, text }: { src?: string; mon: string; text: string 
   )
 }
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DataTable, type Col, type TableRow } from "#/components/DataTable"
 import {
   FilterSelect,
@@ -72,7 +72,7 @@ const BASE_COLS: Col<CarryRow>[] = [
   {
     k: "sol",
     l: "솔루션",
-    w: 86,
+    w: 78,
     // 품의 초과집행 행은 솔루션 칸에 표시를 남긴다
     fmt: (v, r) => (r.over ? <b className="font-semibold">{v} ⚠</b> : v),
     csv: (v) => v,
@@ -80,28 +80,28 @@ const BASE_COLS: Col<CarryRow>[] = [
   {
     k: "ctry",
     l: "국가",
-    w: 92,
+    w: 84,
     // 한글명을 같이 쓰면 열이 그만큼 넓어져 가로 스크롤이 생긴다 → 툴팁으로 뺀다
     fmt: (v, r) => <span title={r.ctryKor && r.ctryKor !== v ? r.ctryKor : undefined}>{v}</span>,
     csv: (v) => v,
   },
-  { k: "phase", l: "PHASE", w: 58, cls: "text-center" },
-  { k: "med", l: "매체", w: 78 },
-  { k: "start", l: "시작일\n(현지)", w: 84, cls: "text-center", csv: (v) => v },
+  { k: "phase", l: "PHASE", w: 54, cls: "text-center" },
+  { k: "med", l: "매체", w: 70 },
+  { k: "start", l: "시작일\n(현지)", w: 76, cls: "text-center", csv: (v) => v },
   {
     k: "end",
     l: "종료일\n(현지)",
-    w: 84,
+    w: 76,
     cls: "text-center",
     // 기간은 각 국가 현지 날짜다 — 잔여일도 그 나라 '오늘' 로 센다
     fmt: (v, r) => <span title={`잔여 ${r.daysLeft ?? "-"}일 (현지 기준)`}>{v}</span>,
     csv: (v) => v,
   },
-  { k: "budgetUsd", l: "품의\n(USD)", w: 92, cls: "text-right", fmt: f2, csv: f2 },
+  { k: "budgetUsd", l: "품의\n(USD)", w: 84, cls: "text-right", fmt: f2, csv: f2 },
   {
     k: "budgetKrw",
     l: "품의\n(KRW)",
-    w: 106,
+    w: 96,
     cls: "text-right",
     fmt: (v) => <b>{f0(v)}</b>,
     csv: f0,
@@ -109,7 +109,7 @@ const BASE_COLS: Col<CarryRow>[] = [
   {
     k: "budgetFx",
     l: "품의\n환율",
-    w: 70,
+    w: 62,
     cls: "text-right",
     fmt: (v) => (v ? f2(v) : <span className="text-[11px] text-fog">미입력</span>),
     csv: (v) => (v ? f2(v) : "미입력"),
@@ -118,7 +118,7 @@ const BASE_COLS: Col<CarryRow>[] = [
     // 이관을 반영한 값을 읽는다 — 토글이 꺼져 있으면 서버가 준 값이 그대로 들어 있다
     k: "setLifeAdj",
     l: "세팅\n총예산",
-    w: 104,
+    w: 96,
     cls: "text-right",
     // 매체 캠페인의 총예산 칸에 넣을 값 — 이미 태운 몫을 빼고 넣으면 일찍 멈춘다
     fmt: (v, r) =>
@@ -145,7 +145,7 @@ const BASE_COLS: Col<CarryRow>[] = [
     // 다른 매체는 계획값 기반이 되고, 계획값으로 만든 일예산은 매체에 넣으면 안 된다.
     k: "setDailyAdj",
     l: "세팅\n일예산",
-    w: 104,
+    w: 96,
     cls: "text-right",
     fmt: (v, r) => {
       if (r.med !== "criteo")
@@ -177,11 +177,11 @@ const BASE_COLS: Col<CarryRow>[] = [
     csv: f2,
   },
   // 오른쪽 월별 원통화 칸이 모두 이 통화다 → 고정 영역 끝에 둔다
-  { k: "setCur", l: "세팅\n통화", w: 52, cls: "text-center" },
+  { k: "setCur", l: "세팅\n통화", w: 48, cls: "text-center" },
   {
     k: "leftAdj",
     l: "잔여액\n(KRW)",
-    w: 106,
+    w: 96,
     cls: "text-right",
     // 아직 어느 달에도 배분되지 않은 돈. 종료됐는데 남아 있으면 그만큼 못 쓰고 끝난 것이다.
     // 다음 차수로 넘긴 돈은 못 쓴 게 아니므로 ⚠ 가 자연히 사라진다(잔여액이 0 이 된다).
@@ -215,7 +215,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
   {
     k: "natTotal",
     l: "소진액\n(통화)",
-    w: 102,
+    w: 94,
     cls: "text-right",
     // 계획(자동기입)은 실적이 아니므로 빼고 더한 값이다
     fmt: (v) => (v ? <span title="확정 + 수기 + 시트 · 계획은 제외">{f2(v)}</span> : ""),
@@ -224,7 +224,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
   {
     k: "spentEffKrw",
     l: "소진액\n(KRW)",
-    w: 106,
+    w: 96,
     cls: "text-right",
     fmt: (v, r) => {
       if (!v) return ""
@@ -254,7 +254,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
 const CHECK_COL = (picked: Set<string>, toggle: (id: string) => void): Col<CarryRow> => ({
   k: "canCarry",
   l: "이관",
-  w: 34,
+  w: 30,
   cls: "text-center",
   nosort: true,
   fmt: (_v, r) =>
@@ -276,29 +276,37 @@ const CHECK_COL = (picked: Set<string>, toggle: (id: string) => void): Col<Carry
 /**
  * 잔여금 이관 열 — 어느 차수에서 나가 어느 차수로 들어왔는지.
  */
-const CARRY_COL: Col<CarryRow> = {
-  k: "carryIn",
+/**
+ * 잔여금 이관 열 — 받은 것(↙)과 넘긴 것(↗)을 따로 낸다.
+ *
+ * 고른 행은 넘길 금액을 **수기로 고칠 수 있다**. 전액이 아니라 일부만 넘기는 경우가
+ * 있어서다. 비우면 다시 전액이 되고, 잔여액보다 큰 값은 잔여액에서 잘린다.
+ * 가운데 차수는 받고 다시 넘기므로 두 줄이 같이 나온다 — 하나만 내면 "받았는데
+ * 잔여액이 왜 0이지" 로 읽힌다.
+ */
+const CARRY_COL = (
+  amounts: Map<string, number>,
+  setAmount: (id: string, v: number | undefined) => void,
+): Col<CarryRow> => ({
+  k: "carryOut",
   l: "이관\n(KRW)",
-  w: 108,
+  w: 110,
   cls: "text-right",
   nosort: true,
-  // 한 행이 받고 다시 넘기는 경우가 있다(가운데 차수). 둘 중 하나만 보이면
-  // "받았는데 잔여액이 왜 0이지" 로 읽히므로 두 줄로 다 낸다.
   fmt: (_v, r) => (
     <>
       {r.carryIn > 0 ? (
         <span
           className="tint tint-info block"
-          title={`${r.carryFrom} 의 종료 잔여금을 넘겨받았습니다`}
+          title={`${r.carryFrom} 의 종료 잔여금을 나눠 받았습니다`}
         >
           ↙ +{f0(r.carryIn)}
         </span>
       ) : null}
-      {r.carryOut > 0 ? (
-        <span
-          className="block text-fog"
-          title={`이 차수가 끝나 남은 금액을 ${r.carryTo} 로 넘겼습니다`}
-        >
+      {r.canCarry && r.carryOut >= 0 && r.carryTo ? (
+        <CarryInput r={r} amounts={amounts} setAmount={setAmount} />
+      ) : r.carryOut > 0 ? (
+        <span className="block text-fog" title={`${r.carryTo} 로 넘겼습니다`}>
           ↗ −{f0(r.carryOut)}
         </span>
       ) : null}
@@ -308,7 +316,53 @@ const CARRY_COL: Col<CarryRow> = {
     [r.carryIn > 0 ? `+${r.carryIn}` : "", r.carryOut > 0 ? `-${r.carryOut}` : ""]
       .filter(Boolean)
       .join(" "),
+})
+
+/** 넘길 금액 입력칸 — 기본값은 잔여액 전액이고, 벗어나면 그때 반영한다 */
+function CarryInput({
+  r,
+  amounts,
+  setAmount,
+}: {
+  r: CarryRow
+  amounts: Map<string, number>
+  setAmount: (id: string, v: number | undefined) => void
+}) {
+  const man = amounts.get(r.id)
+  const [v, setV] = useState(man === undefined ? "" : String(man))
+  useEffect(() => setV(man === undefined ? "" : String(man)), [man])
+
+  const commit = () => {
+    const t = v.replace(/[,\s]/g, "")
+    if (!t) return setAmount(r.id, undefined)
+    const n = Number(t)
+    if (!Number.isFinite(n) || n < 0) return setV(man === undefined ? "" : String(man))
+    setAmount(r.id, Math.round(n))
+  }
+
+  return (
+    <input
+      value={v}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur()
+        if (e.key === "Escape") setV(man === undefined ? "" : String(man))
+      }}
+      placeholder={f0(r.carryCap)}
+      title={
+        `${r.carryTo} 로 넘길 금액. 비우면 잔여액 전액(${f0(r.carryCap)}원)을 넘깁니다. ` +
+        `잔여액보다 큰 값은 잔여액에서 잘립니다`
+      }
+      className={cn(
+        "w-full rounded-[8px] border px-1.5 py-px text-right text-[11.5px] tabular-nums",
+        v ? "border-graphite/45 bg-amber font-semibold" : "border-graphite/20 bg-paper",
+      )}
+    />
+  )
 }
+
 
 export function OpsView({ D }: { D: OpsPayload }) {
   const { filt, setFilt } = useView()
@@ -316,6 +370,15 @@ export function OpsView({ D }: { D: OpsPayload }) {
 
   // 넘길 라인은 사람이 고른다. 체크 상태는 이 화면이 들고 있고 서버에 쓰지 않는다.
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  // 넘길 금액을 수기로 고친 행 (id → KRW). 비우면 잔여액 전액을 넘긴다.
+  const [amounts, setAmounts] = useState<Map<string, number>>(new Map())
+  const setAmount = (id: string, v: number | undefined) =>
+    setAmounts((p) => {
+      const n = new Map(p)
+      if (v === undefined) n.delete(id)
+      else n.set(id, v)
+      return n
+    })
   const [open, setOpen] = useState<Set<string>>(new Set())
   const toggleRow = (id: string) =>
     setOpen((p) => {
@@ -334,7 +397,7 @@ export function OpsView({ D }: { D: OpsPayload }) {
 
   // 이관은 **전체 행**으로 계산한다 — 드롭다운으로 앞 차수를 걸러낸 상태에서 계산하면
   // 넘겨줄 차수가 화면에서 사라졌다는 이유로 이관액이 달라진다.
-  const carry = applyCarry(D.rows, picked)
+  const carry = applyCarry(D.rows, picked, amounts)
 
   // 드롭다운은 앞 선택을 따라 좁아진다 — 솔루션을 고르면 그 솔루션에 있는 국가만 남는다
   const pool = carry.rows.filter((r) => !onlyLive || (r.daysLeft ?? 0) > 0)
@@ -362,7 +425,12 @@ export function OpsView({ D }: { D: OpsPayload }) {
   const gLeft = sum("leftAdj")
   const gSpent = sum("spentEffKrw")
 
-  const cols = [CHECK_COL(picked, togglePick), ...BASE_COLS, CARRY_COL, ...TOTAL_COLS]
+  const cols = [
+    CHECK_COL(picked, togglePick),
+    ...BASE_COLS,
+    CARRY_COL(amounts, setAmount),
+    ...TOTAL_COLS,
+  ]
   const total: TableRow = {
     __type: "grand",
     sol: "합계",

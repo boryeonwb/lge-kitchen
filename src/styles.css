@@ -83,12 +83,12 @@ body {
 .tint {
   display: inline-block;
   border-radius: var(--radius-pill);
-  padding: 1px 8px;
+  padding: 0 6px;
   font-weight: 600;
 }
 /* 숫자 열에서는 배지의 오른쪽 여백만큼 당겨 낸다 — 그러지 않으면 배지가 붙은 행만
    숫자 오른쪽 끝이 8px 안으로 들어가 같은 열의 다른 숫자와 자릿수가 어긋난다. */
-.tbl td.text-right .tint { margin-right: -8px; }
+.tbl td.text-right .tint { margin-right: -5px; }
 .tint-neg { background: var(--color-blush); }
 .tint-warn { background: var(--color-amber); }
 .tint-ok { background: var(--color-sage); }
@@ -110,11 +110,11 @@ body {
   z-index: 3;
   background: var(--color-graphite);
   color: var(--color-paper);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   text-align: center;
-  padding: 9px 8px;
+  padding: 7px 5px;
   border-right: 1px solid rgba(255, 255, 255, 0.14);
   white-space: pre-line;
   user-select: none;
@@ -141,7 +141,8 @@ body {
 .tbl thead th.gh-tax { background: #4a4239; }
 
 .tbl td {
-  padding: 7px 8px;
+  padding: 5px 5px;
+  font-size: 12px;
   border-bottom: 1px solid rgba(57, 55, 55, 0.07);
   white-space: nowrap;
 }
@@ -169,7 +170,7 @@ body {
 .tbl tbody tr.detail td {
   background: var(--color-cream);
   color: var(--color-ink);
-  padding: 4px 8px;
+  padding: 3px 5px;
   border-bottom: 1px dotted rgba(57, 55, 55, 0.16);
 }
 .tbl tbody tr.detail td.fz { background: var(--color-cream); }

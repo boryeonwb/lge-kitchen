@@ -15,8 +15,10 @@ import type { OpsRow } from "#/lib/api"
  *     '이전 차수' 는 결국 먼저 끝나는 차수이고, 이름(`Phase1-1`)으로 줄 세우면 규칙이
  *     매체 표기에 끌려다닌다.
  *   · 고른 행의 잔여금은 **바로 다음 차수**로 간다. 그 차수가 여러 매체면 진행 중인
- *     행에만 품의예산 비례로 담는다(끝난 매체에 담아 봐야 태울 수 없다). 전부 끝났으면
- *     어쩔 수 없이 전체에 담는다 — 그래야 돈이 어디로 갔는지는 남는다.
+ *     운영 매체에 **똑같이 나눠** 담는다(끝난 매체에 담아 봐야 태울 수 없다). 전부
+ *     끝났으면 어쩔 수 없이 전체에 담는다 — 그래야 돈이 어디로 갔는지는 남는다.
+ *   · 넘길 금액은 **수기로 고칠 수 있다**. 전액을 넘기지 않고 일부만 넘기는 경우가
+ *     있어서다. 남은 것보다 많이 넘길 수는 없으므로 잔여액에서 자른다.
  *   · 다음 차수가 없으면(마지막 차수) 넘길 곳이 없으므로 고를 수 없다.
  *   · Phase 가 공란인 행은 어느 차수인지 알 수 없어 체인에서 뺀다.
  */
@@ -31,6 +33,8 @@ export interface CarryRow extends OpsRow {
   carryTo: string
   /** 이 행을 골라 넘길 수 있는지 (끝났고, 남았고, 다음 차수가 있다) */
   canCarry: boolean
+  /** 넘길 수 있는 최대 금액 = 그 시점의 잔여액. 수기 입력의 상한이다 */
+  carryCap: number
   /** 넘길 때 상대가 될 다음 차수 */
   nextPhase: string
   /** 이관을 반영한 값 */
@@ -49,6 +53,7 @@ const base = (r: OpsRow): CarryRow => ({
   carryFrom: "",
   carryTo: "",
   canCarry: false,
+  carryCap: 0,
   nextPhase: "",
   leftAdj: r.leftKrw,
   setLifeAdj: r.setLife,
@@ -68,7 +73,10 @@ const base = (r: OpsRow): CarryRow => ({
  */
 function reprice(r: CarryRow) {
   const delta = r.carryIn - r.carryOut
-  if (r.setLife !== null && r.setRate) r.setLifeAdj = r.setLife + delta / r.setRate
+  // 총예산에는 **받은 것만** 더한다. 넘기는 행은 정의상 끝난 차수이고, 끝난 행의
+  // setLife 는 natDone(이미 태운 원통화)이라 잔여금이 애초에 들어 있지 않다 —
+  // 거기서 넘긴 금액을 빼면 총예산이 음수가 된다(멕시코 Phase0 netflix 에서 확인).
+  if (r.setLife !== null && r.setRate) r.setLifeAdj = r.setLife + r.carryIn / r.setRate
 
   if (r.med !== "criteo" || !r.setRate || !r.daysLeft || r.daysLeft <= 0) {
     r.setDailyAdj = null
@@ -82,18 +90,26 @@ function reprice(r: CarryRow) {
   r.setDailyAdj = avail > 0 ? avail / r.setRate / r.daysLeft : 0
 }
 
-/** 이관액을 나눠 담는다 — 진행 중인 행 우선, 품의예산 비례. 잔차는 마지막 행에서 맞춘다 */
+/**
+ * 이관액을 다음 차수에 나눠 담는다 — **운영 매체 수로 균등 분할**.
+ *
+ * 처음에는 품의예산 비례로 담았지만, 실제로는 남은 돈을 그 차수의 매체들에 똑같이
+ * 얹어 태우는 방식이라 균등으로 바꿨다(2026-09-05 지시).
+ *
+ * 담는 대상은 그 차수에서 **아직 진행 중인 행**이다 — 같은 차수라도 매체마다 종료일이
+ * 다를 수 있는데(멕시코 Phase2 는 criteo 만 9/6 까지, 나머지는 7/5), 이미 끝난 매체에
+ * 담아 봐야 태울 수 없다. 전부 끝났으면 어쩔 수 없이 전체에 담는다 — 그래야 돈이
+ * 어디로 갔는지는 남는다.
+ *
+ * 원 단위 나머지는 마지막 행에서 맞춘다(합이 넘긴 금액과 정확히 같아야 한다).
+ */
 function spread(all: CarryRow[], amount: number) {
   const live = all.filter((r) => (r.daysLeft ?? 0) > 0)
   const rows = live.length ? live : all
-  const w = rows.map((r) => r.budgetKrw || r.budgetUsd || 0)
-  const tot = w.reduce((a, v) => a + v, 0)
+  const each = Math.round(amount / rows.length)
   let left = amount
   rows.forEach((r, i) => {
-    const share =
-      i === rows.length - 1
-        ? left
-        : Math.round(tot > 0 ? (amount * w[i]) / tot : amount / rows.length)
+    const share = i === rows.length - 1 ? left : each
     r.carryIn += share
     r.leftAdj = (r.leftAdj ?? 0) + share
     left -= share
@@ -130,7 +146,12 @@ export interface CarryResult {
 /**
  * @param picked 넘기기로 고른 행의 id. 비어 있으면 이관 없이 원래 값이다.
  */
-export function applyCarry(src: OpsRow[], picked: Set<string>): CarryResult {
+export function applyCarry(
+  src: OpsRow[],
+  picked: Set<string>,
+  /** 넘길 금액을 수기로 고친 행 (id → KRW). 없으면 잔여액 전액을 넘긴다 */
+  amounts?: Map<string, number>,
+): CarryResult {
   const rows = src.map(base)
   const chains = phaseChain(rows)
 
@@ -143,6 +164,7 @@ export function applyCarry(src: OpsRow[], picked: Set<string>): CarryResult {
       for (const r of b.rs) {
         if ((r.leftKrw ?? 0) > 0) {
           r.canCarry = true
+          r.carryCap = r.leftKrw ?? 0
           r.nextPhase = buckets[i + 1].phase
         }
       }
@@ -163,7 +185,12 @@ export function applyCarry(src: OpsRow[], picked: Set<string>): CarryResult {
       if (!take.length) continue
       let out = 0
       for (const r of take) {
-        const v = Math.max(r.leftAdj ?? 0, 0)
+        const avail = Math.max(r.leftAdj ?? 0, 0)
+        r.carryCap = avail
+        if (avail <= 0) continue
+        // 수기로 고친 금액이 있으면 그 값. 남은 것보다 많이 넘길 수는 없으므로 잘라 둔다
+        const want = amounts?.get(r.id)
+        const v = want === undefined ? avail : Math.max(0, Math.min(want, avail))
         if (v <= 0) continue
         r.carryOut = v
         r.carryTo = buckets[i + 1].phase
