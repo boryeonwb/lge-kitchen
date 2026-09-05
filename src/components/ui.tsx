@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useView } from "#/lib/view"
-import { MONLBL } from "#/lib/format"
+import { MONLBL, f2 } from "#/lib/format"
 import { cn } from "#/lib/utils"
 
 /**
@@ -226,23 +226,17 @@ export interface Kpi {
 
 /** KPI — 세리프가 감정 노동을 하는 자리. 숫자만 40px 디스플레이로 올린다. */
 export function KpiCards({ items }: { items: Kpi[] }) {
+  // 정확한 원 단위 금액은 카드 폭을 넘어간다 → 길이에 따라 크기를 내린다.
+  // 크기는 **가장 긴 값 하나로 정해 전부에 같이** 준다. 카드마다 재면 나란히 선
+  // 숫자들의 크기가 제각각이 되어(발행금액만 작고 나머지는 크게) 눈에 거슬린다.
+  const longest = items.reduce((a, it) => Math.max(a, String(it.v).length), 0)
+  const size = longest > 12 ? "text-[24px]" : longest > 8 ? "text-[30px]" : "text-[40px]"
   return (
     <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
       {items.map((it) => (
         <div key={it.k} title={it.title} className="rounded-[12px] bg-paper px-6 py-5 shadow-soft">
           <div className="text-[11px] tracking-[0.08em] text-fog uppercase">{it.k}</div>
-          {/* 정확한 원 단위 금액은 열 자리를 넘어간다 — 길이에 따라 크기를 내려
-              카드 밖으로 넘치거나 줄바꿈되지 않게 한다 */}
-          <div
-            className={cn(
-              "display mt-2 tabular-nums",
-              String(it.v).length > 12
-                ? "text-[24px]"
-                : String(it.v).length > 8
-                  ? "text-[30px]"
-                  : "text-[40px]",
-            )}
-          >
+          <div className={cn("display mt-2 tabular-nums", size)}>
             {it.v}
             {it.u ? <span className="ml-1 font-sans text-[13px] text-fog">{it.u}</span> : null}
           </div>
@@ -250,6 +244,78 @@ export function KpiCards({ items }: { items: Kpi[] }) {
         </div>
       ))}
     </div>
+  )
+}
+
+/**
+ * 눌러서 복사하는 숫자 칸 — 매체 세팅 창에 그대로 붙여 넣을 값에 쓴다.
+ *
+ * 복사되는 건 **화면 표기 그대로**(`1,234.56`)가 아니라 자릿수 구분 없는 원값이다.
+ * 매체 입력칸은 콤마가 들어가면 안 받거나 다른 숫자로 읽는다.
+ *
+ * `navigator.clipboard` 는 보안 컨텍스트(https·localhost)에서만 있다. 같은 망의 다른
+ * PC 가 `http://192.168.x.x:3100` 으로 열면 없으므로, 눈에 안 보이는 textarea 에
+ * `execCommand("copy")` 로 물러선다 — 안 되면 조용히 실패하는 대신 알려 준다.
+ */
+export function Copyable({
+  v,
+  className,
+  title,
+}: {
+  v: number
+  className?: string
+  title?: string
+}) {
+  const [done, setDone] = useState(false)
+  const text = String(v)
+
+  const copy = async () => {
+    let ok = false
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        ok = true
+      }
+    } catch {
+      ok = false
+    }
+    if (!ok) {
+      try {
+        const ta = document.createElement("textarea")
+        ta.value = text
+        ta.style.cssText = "position:fixed;left:-9999px;top:0"
+        document.body.appendChild(ta)
+        ta.select()
+        ok = document.execCommand("copy")
+        ta.remove()
+      } catch {
+        ok = false
+      }
+    }
+    if (!ok) return alert(`복사하지 못했습니다. 직접 복사해 주세요 — ${text}`)
+    setDone(true)
+    setTimeout(() => setDone(false), 900)
+  }
+
+  return (
+    <b
+      role="button"
+      tabIndex={0}
+      onClick={(e) => {
+        e.stopPropagation()
+        void copy()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          void copy()
+        }
+      }}
+      title={`${title ? title + " · " : ""}누르면 ${text} 를 복사합니다`}
+      className={cn("cursor-copy", done && "tint tint-ok", className)}
+    >
+      {done ? "복사됨" : f2(v)}
+    </b>
   )
 }
 

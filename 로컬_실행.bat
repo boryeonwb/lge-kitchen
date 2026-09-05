@@ -8,7 +8,9 @@ REM ── 경로 (환경에 맞게 고치세요)
 set "BACKEND=C:\lgwork\_advwt\backend"
 set "LGE_WORK=C:\lgwork"
 set "LGE_STATE=C:\lgwork\adv_state"
-set "LGE_PROJECT=C:\lgwork"
+REM LGE_PROJECT 은 인보이스 PDF 폴더(invoice\N월\*.pdf)의 상위 폴더다.
+REM 정산 탭의 [v] 인보이스 보기가 이 경로에서 PDF 를 읽는다 - 틀리면 버튼이 안 뜬다.
+set "LGE_PROJECT=G:\.shortcut-targets-by-id\1htTuc5GPR8VpdA70hRPhsSLb9HTffUy8\-----------------------W1--------------------------\CS1A\LG전자 냉장고(LGE HS NPI)\정산 자동화"
 
 echo [1/2] 정산 백엔드 :8000
 start "LGE 정산 백엔드" cmd /k "cd /d %BACKEND% && set LGE_WORK=%LGE_WORK%&& set LGE_STATE=%LGE_STATE%&& set LGE_PROJECT=%LGE_PROJECT%&& python -m uvicorn main:app --host 0.0.0.0 --port 8000"

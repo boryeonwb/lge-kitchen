@@ -13,6 +13,12 @@ export const f2 = (v: Num) =>
     ? ""
     : (v as number).toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+/** 비율(%) — 소수 1자리. 진척률·소진율처럼 0.1%p 차이가 의미 있는 값에 쓴다 */
+export const f1 = (v: Num) =>
+  nil(v)
+    ? ""
+    : (v as number).toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
 /** 억원 단위 (소수 1자리) */
 export const eok = (v: number) =>
   (v / 1e8).toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })

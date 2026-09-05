@@ -50,6 +50,42 @@ export interface SettleRow {
    * 근거가 숫자와 같이 가야 한다.
    */
   taxOv: TaxOvRec | null
+  /** 이 행이 근거로 든 인보이스 파일들 */
+  invoices: InvoiceRef[]
+}
+
+/** 인보이스 PDF 한 건 */
+export interface InvoiceRef {
+  name: string
+  path: string
+  /** 그 PDF 안에서 이 행에 합산된 개별 라인 금액 — 뷰어가 그 자리에 형광 표시를 넣는다 */
+  amts: number[]
+}
+
+/**
+ * 인보이스 PDF 주소. `a` 를 붙이면 서버가 그 금액이 나오는 자리에 형광 표시를 넣은
+ * 사본을 만들어 준다 — 어느 줄이 이 행의 숫자가 됐는지 PDF 안에서 짚을 수 있다.
+ */
+/**
+ * 화면에 남은 라인의 인보이스를 한 덩이로 받는다.
+ *
+ * 경로를 GET 질의로 붙이면 150건에서 URL 이 6KB 를 넘어 잘린다 → POST 로 보낸다.
+ * 서버가 허용 목록을 다시 대조하므로 여기서 보낸 목록이 그대로 신뢰되지는 않는다.
+ */
+export async function fetchInvoiceZip(paths: string[]): Promise<Blob> {
+  const res = await fetch(`${API_BASE}/invoices.zip`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paths }),
+  })
+  if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`)
+  return res.blob()
+}
+
+export function invoiceUrl(it: InvoiceRef, hl: boolean): string {
+  let u = `${API_BASE}/invoice?p=${encodeURIComponent(it.path)}`
+  if (hl && it.amts?.length) u += `&a=${encodeURIComponent(it.amts.join(","))}`
+  return u
 }
 
 /** 세금계산서 수기 수정 한 건 (내부 대시보드에서 저장된 것) */
@@ -113,6 +149,12 @@ export interface OpsRow {
   monKrw: Record<string, number>
   monSrc: Record<string, MonSrc>
   monNat: Record<string, number>
+  /** 월별 청구환율 = 그 달 KRW ÷ 그 달 세팅통화 금액 */
+  /** 진척률(%) — 시작일~종료일 중 경과 비율. 각 국가 현지 날짜로 센 값이다 */
+  progress: number | null
+  monFx: Record<string, number>
+  /** 그 달 환율이 인보이스 적용환율이 아니라 행 환산환율인지 */
+  monFxEst: Record<string, boolean>
 
   /** 실소진 = 계획(자동기입)을 뺀 합. 세팅 일예산의 분자를 만드는 값 */
   spentEffKrw: number
@@ -131,7 +173,29 @@ export interface OpsPayload {
   closedMonth: string
   mix: { fetchedAt: string; n: number; totalUsd: number }
   /** Criteo 실시간 소진 시트 — 어디까지 담겼는지와, 캠페인명으로 못 붙인 것들 */
-  sheet: { asOf: string; fetchedAt: string; unmatched: Array<{ camp: string; usd: number }> }
+  sheet: {
+    asOf: string
+    fetchedAt: string
+    unmatched: Array<{ camp: string; usd: number }>
+    /** 통합 raw 스냅샷이 덮은 매체·달 — 캠페인명 추측 없이 컬럼으로 확정된 값 */
+    raw: {
+      months: string[]
+      /** 스냅샷이 있는 매체 (criteo 외 매체는 이게 유일한 실시간 소스다) */
+      meds: string[]
+      /** 매일 낮 12시 적재분 — 진행 중인 달을 따라간다 */
+      daily: { pulledAt: string; asOf: string; meds: string[] } | null
+      /** 매체|달 → 어느 소스를 썼는지 (`미사용` = 그 달 1일부터 못 덮어 뺀 것) */
+      picked: Record<string, { src: string; cover: { from: string; to: string; days: number } | null; why?: string }>
+      snapshots: Array<{
+        file: string
+        med: string
+        months: string[]
+        asOf: string
+        capturedAt: string
+        rows: number
+      }>
+    } | null
+  }
   stats: {
     rows: number | null
     budgetUsd: number | null

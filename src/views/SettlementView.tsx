@@ -1,4 +1,6 @@
+import { createContext, useContext, useState } from "react"
 import { DataTable, type Col, type TableRow } from "#/components/DataTable"
+import { InvoiceCheck, InvoiceModal } from "#/components/InvoiceModal"
 import {
   Card,
   KpiCards,
@@ -29,6 +31,23 @@ import { ISSLBL, MONLBL, eok, f0, f2, issMatch, issValues } from "#/lib/format"
 /** 매체비를 실제로 청구하지 않는 행(HSAD) — 회색으로 구분한다 */
 const notBilled = (r: SettleRow) => (r.owner === "HSAD" ? "notbilled" : "")
 
+/**
+ * 인보이스 뷰어를 여는 통로. 열 정의는 모듈 단위(화면이 다시 그려져도 같은 배열)라
+ * 컴포넌트의 상태를 직접 못 본다 — 열 정의는 그대로 두고 셀에서 이 통로를 집어온다.
+ */
+const OpenInvoice = createContext<(r: SettleRow) => void>(() => {})
+
+/** 인보이스 최종금액 칸 — 오른쪽 숫자 + 늘 비어 있던 왼쪽 자리에 여는 단추 */
+function InvTotalCell({ row, v }: { row: SettleRow; v: number }) {
+  const open = useContext(OpenInvoice)
+  return (
+    <>
+      <InvoiceCheck list={row.invoices} onOpen={() => open(row)} />
+      <span title="이 라인이 속한 인보이스(계정)의 발행 총액">{f2(v)}</span>
+    </>
+  )
+}
+
 const COLS: Col<SettleRow>[] = [
   { k: "sol", l: "솔루션", w: 80 },
   {
@@ -56,19 +75,19 @@ const COLS: Col<SettleRow>[] = [
   { k: "cur", l: "통화", w: 40, cls: "text-center", grp: "inv" },
   {
     k: "invTotal",
-    l: "인보이스\n최종금액",
+    l: "전체\n인보이스 금액",
     w: 96,
     cls: "text-right",
     grp: "inv",
     // 그 인보이스(계정)의 발행 총액이라 집계행마다 되풀이된다 → 합계를 내지 않는다
-    fmt: (v) => <span title="이 라인이 속한 인보이스(계정)의 발행 총액">{f2(v)}</span>,
+    fmt: (v, r) => <InvTotalCell row={r} v={v} />,
     csv: f2,
   },
   { k: "dst", l: "DST안분", w: 72, cls: "text-right", grp: "inv", fmt: f2, csv: f2 },
   { k: "invalid", l: "무효반영", w: 72, cls: "text-right", grp: "inv", fmt: f2, csv: f2 },
   {
     k: "billed",
-    l: "광고비net",
+    l: "최종\n인보이스 금액",
     w: 90,
     cls: "text-right",
     grp: "inv",
@@ -234,6 +253,8 @@ function totalRow(label: string, rows: SettleRow[], type: "sub" | "grand" = "gra
 
 export function SettlementView({ D }: { D: SettlePayload }) {
   const { mon, filt } = useView()
+  // 어느 행의 인보이스를 몇 번째로 보고 있는지. 행 하나가 인보이스 여러 건에 걸친다.
+  const [inv, setInv] = useState<{ row: SettleRow; i: number } | null>(null)
   const monLab = mon ? MONLBL(mon) : "전체월"
 
   // 드롭다운은 연쇄 구조 — 월 → **발행월** → 솔루션 → 매체 → 국가 → Phase 순으로
@@ -376,19 +397,40 @@ export function SettlementView({ D }: { D: SettlePayload }) {
       <Card
         title={`정산 · ${monLab}`}
         note={
-          <>
-            <b className="font-semibold">광고비net</b> = 집행 + DST안분 + 무효반영 ·{" "}
-            <b className="font-semibold">최종 발행 금액</b> = 매체비KRW + 수수료KRW. 단 처리주체가{" "}
-            <b className="font-semibold">HSAD(광고주계정)</b>인 행은 매체비를 광고주가 매체에 직접
-            지불하므로 수수료만 발행합니다 — 그 행의 매체비 칸은 흐리게 내려둡니다 ·{" "}
-            <b className="font-semibold">인보이스 최종금액</b>은 그 라인이 속한 인보이스의 발행 총액이라
-            집계행마다 되풀이됩니다 — 합계를 내지 않습니다
-          </>
+          // 네 가지가 서로 다른 이야기라 한 문단에 이어 붙이면 어디서 끊기는지 안 보인다
+          <ul className="m-0 list-none space-y-1 p-0">
+            <li>
+              <b className="font-semibold">최종 인보이스 금액</b> = 집행 + DST안분 + 무효반영
+            </li>
+            <li>
+              <b className="font-semibold">최종 발행 금액</b> = 매체비KRW + 수수료KRW. (단
+              처리주체가 <b className="font-semibold">HSAD(광고주계정)</b>인 행은 매체비를 광고주가
+              매체에 직접 지불하므로 수수료만 발행, 그 행의 매체비 칸은 흐리게 표시)
+            </li>
+            <li>
+              <b className="font-semibold">전체 인보이스 금액</b>은 그 라인이 속한 인보이스의 발행
+              총액으로 계정 공유하는 캠페인 금액 모두 포함됩니다.
+            </li>
+            <li>
+              <b className="font-semibold">✓</b> 를 누르면 근거 인보이스 PDF 가 열리고, 이 행에
+              합산된 개별 라인이 형광 표시됩니다
+            </li>
+          </ul>
         }
       >
-        <DataTable cols={cols} rows={out} nosort freeze={freeze} grouped />
+        <OpenInvoice.Provider value={(r) => setInv({ row: r, i: 0 })}>
+          <DataTable cols={cols} rows={out} nosort freeze={freeze} grouped />
+        </OpenInvoice.Provider>
       </Card>
 
+      {inv ? (
+        <InvoiceModal
+          row={inv.row}
+          index={inv.i}
+          onIndexChange={(i) => setInv((p) => (p ? { ...p, i } : p))}
+          onClose={() => setInv(null)}
+        />
+      ) : null}
     </>
   )
 }

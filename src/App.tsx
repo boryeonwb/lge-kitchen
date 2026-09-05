@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Col } from "#/components/DataTable"
 import * as api from "#/lib/api"
-import type { OpsPayload, SettlePayload } from "#/lib/api"
+import type { InvoiceRef, OpsPayload, SettlePayload } from "#/lib/api"
+import { fetchInvoiceZip } from "#/lib/api"
 import { ViewContext, type SortState, type ViewCtx } from "#/lib/view"
 import { MONLBL } from "#/lib/format"
 import { cn } from "#/lib/utils"
@@ -29,6 +30,20 @@ const TABS: Array<[string, string]> = [
 function readHash(): { tab?: string; mon?: string } {
   const [t, m] = decodeURIComponent(location.hash.replace(/^#/, "")).split("/")
   return { tab: TABS.some(([id]) => id === t) ? t : undefined, mon: m || undefined }
+}
+
+/**
+ * 압축파일 이름 — 무슨 조건으로 받은 것인지 파일명만 보고 알 수 있게 붙인다.
+ * 여러 사람이 각자 다르게 걸러 받으면 나중에 어느 게 무엇인지 구분이 안 된다.
+ */
+function zipName(mon: string, filt: Record<string, string>, n: number): string {
+  const bits = [mon ? MONLBL(mon) : "전체월", filt.iss ? `발행${filt.iss}월` : "",
+                filt.sol, filt.med, filt.ctry, filt.phase]
+    .filter(Boolean)
+    .map((v) => v.replace(/[\/:*?"<>|\s]/g, "-"))
+  const d = new Date()
+  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+  return `LGE-REF-인보이스_${bits.join("_")}_${n}건_${ymd}.zip`
 }
 
 export function App() {
@@ -120,6 +135,47 @@ export function App() {
     [tab, curMon, setMon, months, filt, setFilt, sort, toggleSort, registerTable],
   )
 
+  /**
+   * 화면에 남은 라인의 인보이스를 압축파일로 받는다.
+   *
+   * 대상은 **마지막으로 그려진 표**다 — 드롭다운·월 선택이 이미 걸러 놓은 그 행들이라
+   * "지금 보고 있는 것" 과 받는 것이 어긋나지 않는다. 소계·총계 행은 근거 파일이 없다.
+   * 한 PDF 가 여러 행의 근거인 경우가 많아 중복을 지운다.
+   */
+  const downloadInvoices = useCallback(async () => {
+    const rows = (lastTable.current?.data || []) as Array<{
+      __type?: string
+      invoices?: InvoiceRef[]
+    }>
+    const paths = [
+      ...new Set(
+        rows.filter((r) => !r.__type).flatMap((r) => (r.invoices || []).map((i) => i.path)),
+      ),
+    ]
+    if (!paths.length) {
+      setErr("지금 화면에 근거 인보이스가 있는 라인이 없습니다.")
+      return
+    }
+    setBusy(`인보이스 ${paths.length}건 압축 중…`)
+    setErr("")
+    try {
+      const blob = await fetchInvoiceZip(paths)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = zipName(curMon, filt, paths.length)
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      // 바로 지우면 큰 파일에서 저장이 끊기는 브라우저가 있다
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      setErr(`인보이스를 내려받지 못했습니다 — ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setBusy(null)
+    }
+  }, [curMon, filt])
+
   const exportCsv = useCallback(() => {
     const t = lastTable.current
     if (!t) return
@@ -189,6 +245,17 @@ export function App() {
           <button type="button" onClick={exportCsv} className={btnGhost}>
             CSV 내보내기
           </button>
+          {tab === "settle" ? (
+            <button
+              type="button"
+              disabled={!!busy}
+              onClick={() => void downloadInvoices()}
+              title="지금 화면에 남은 라인의 근거 인보이스를 모두 압축파일로 받습니다"
+              className={cn(btnGhost, "disabled:opacity-50")}
+            >
+              인보이스 다운로드
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={!!busy}

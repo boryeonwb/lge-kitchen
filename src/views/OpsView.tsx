@@ -41,6 +41,7 @@ function SrcValue({ src, mon, text }: { src?: string; mon: string; text: string 
 import { useState } from "react"
 import { DataTable, type Col, type TableRow } from "#/components/DataTable"
 import {
+  Copyable,
   FilterSelect,
   Hint,
   MultiFilterSelect,
@@ -52,7 +53,7 @@ import type { OpsPayload } from "#/lib/api"
 import { CarryModal } from "#/components/CarryModal"
 import { applyCarry, moved, type CarryPlan, type CarryRow } from "#/lib/carry"
 import { useView } from "#/lib/view"
-import { f0, f2 } from "#/lib/format"
+import { f0, f1, f2 } from "#/lib/format"
 import { cn } from "#/lib/utils"
 
 /**
@@ -89,14 +90,14 @@ const BASE_COLS: Col<CarryRow>[] = [
     ),
     csv: (v) => v,
   },
-  { k: "phase", l: "PHASE", w: 50, cls: "text-center" },
-  { k: "med", l: "매체", w: 76 },
+  { k: "phase", l: "PHASE", w: 58, cls: "text-center" },
+  { k: "med", l: "매체", w: 84 },
   // 기간은 한 해 안에 들어 있어 월-일만 낸다 — 열을 좁혀야 가로 스크롤이 안 생긴다.
   // 연도는 툴팁에 남기고, CSV 에는 전체 날짜가 그대로 나간다.
   {
     k: "start",
     l: "시작일\n(현지)",
-    w: 58,
+    w: 50,
     cls: "text-center",
     fmt: (v) => <span title={v}>{String(v || "").slice(5)}</span>,
     csv: (v) => v,
@@ -104,7 +105,7 @@ const BASE_COLS: Col<CarryRow>[] = [
   {
     k: "end",
     l: "종료일\n(현지)",
-    w: 58,
+    w: 50,
     cls: "text-center",
     // 기간은 각 국가 현지 날짜다 — 잔여일도 그 나라 '오늘' 로 센다
     fmt: (v, r) => (
@@ -126,7 +127,7 @@ const BASE_COLS: Col<CarryRow>[] = [
   {
     k: "budgetFx",
     l: "품의\n환율",
-    w: 58,
+    w: 72,
     cls: "text-right",
     fmt: (v) => (v ? f2(v) : <span className="text-[11px] text-fog">미입력</span>),
     csv: (v) => (v ? f2(v) : "미입력"),
@@ -142,7 +143,8 @@ const BASE_COLS: Col<CarryRow>[] = [
       v === null ? (
         ""
       ) : (
-        <b
+        <Copyable
+          v={v}
           className={cn(moved(r) ? "tint tint-info" : r.over ? "tint tint-neg" : "font-semibold")}
           title={
             `이미 정해진 몫 + 앞으로 태울 몫 = ${f2(v)} ${r.setCur}` +
@@ -151,9 +153,7 @@ const BASE_COLS: Col<CarryRow>[] = [
               : "") +
             (r.carryOut > 0 ? ` · 잔여금을 ${r.carryTo} 로 넘겨 0 이 됐습니다` : "")
           }
-        >
-          {f2(v)}
-        </b>
+        />
       ),
     csv: f2,
   },
@@ -178,7 +178,8 @@ const BASE_COLS: Col<CarryRow>[] = [
           </span>
         )
       return (
-        <b
+        <Copyable
+          v={v}
           className={cn("font-semibold", moved(r) && "tint tint-info")}
           title={
             `(품의예산 ${f0(r.budgetKrw)} − 실소진 ${f0(r.spentEffKrw)}` +
@@ -186,9 +187,7 @@ const BASE_COLS: Col<CarryRow>[] = [
             (r.carryOut ? ` − 이관 ${f0(r.carryOut)}` : "") +
             `) ÷ ${f2(r.setRate ?? 0)} ÷ 잔여 ${r.daysLeft}일`
           }
-        >
-          {f2(v)}
-        </b>
+        />
       )
     },
     csv: f2,
@@ -209,7 +208,7 @@ const BASE_COLS: Col<CarryRow>[] = [
         <b
           className={v < 0 ? "tint tint-neg" : stuck ? "tint tint-warn" : "font-semibold"}
           title={
-            "품의예산(KRW) − 확정 소진 − 수기 입력" +
+            "품의예산(KRW) − 실소진(확정·수기·시트)" +
             (r.carryIn > 0 ? ` + ${r.carryFrom} 에서 이관 ${f0(r.carryIn)}원` : "") +
             (r.carryOut > 0 ? ` · ${f0(r.carryOut)}원을 ${r.carryTo} 로 넘겼습니다` : "") +
             (stuck ? " · 종료됐는데 남아 있어 이만큼 못 쓰고 끝났습니다" : "")
@@ -232,7 +231,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
   {
     k: "natTotal",
     l: "소진액\n(통화)",
-    w: 86,
+    w: 78,
     cls: "text-right",
     // 계획(자동기입)은 실적이 아니므로 빼고 더한 값이다
     fmt: (v) => (v ? <span title="확정 + 수기 + 시트 · 계획은 제외">{f2(v)}</span> : ""),
@@ -241,7 +240,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
   {
     k: "spentEffKrw",
     l: "소진액\n(KRW)",
-    w: 90,
+    w: 86,
     cls: "text-right",
     fmt: (v, r) => {
       if (!v) return ""
@@ -354,6 +353,11 @@ export function OpsView({ D }: { D: OpsPayload }) {
   // 이관은 **전체 행**으로 계산한다 — 드롭다운으로 앞 차수를 걸러낸 상태에서 계산하면
   // 넘겨줄 차수가 화면에서 사라졌다는 이유로 이관액이 달라진다.
   const carry = applyCarry(D.rows, plans)
+  // 소진율 = 실소진 ÷ 품의예산. 서버에도 같은 이름의 값이 있지만 그건 **확정분만**
+  // 나눈 것이라, 시트로 메운 달이 빠져 화면의 소진액과 어긋난다. 여기서 다시 낸다.
+  for (const r of carry.rows) {
+    r.spentRate = r.budgetKrw ? (r.spentEffKrw / r.budgetKrw) * 100 : null
+  }
 
   // 드롭다운은 앞 선택을 따라 좁아진다 — 솔루션을 고르면 그 솔루션에 있는 국가만 남는다
   const pool = carry.rows.filter((r) => !onlyLive || (r.daysLeft ?? 0) > 0)
@@ -373,7 +377,17 @@ export function OpsView({ D }: { D: OpsPayload }) {
 
   const meds = [...new Set(ppool.map((r) => r.med))].sort()
   const medSel = pickSet(filt.opsMed, meds)
-  const rows = ppool.filter((r) => !medSel.size || medSel.has(r.med))
+  const mpool = ppool.filter((r) => !medSel.size || medSel.has(r.med))
+
+  // 기간은 체인의 맨 뒤에 둔다 — 같은 솔루션·국가라도 차수마다 기간이 달라, 앞에
+  // 두면 솔루션·매체 드롭다운에 그 기간과 무관한 값이 남아 고르는 족족 빈 표가 된다.
+  const starts = [...new Set(mpool.map((r) => r.start).filter(Boolean))].sort()
+  const vStart = starts.includes(filt.opsStart) ? filt.opsStart : ""
+  const spool2 = mpool.filter((r) => !vStart || r.start === vStart)
+
+  const ends = [...new Set(spool2.map((r) => r.end).filter(Boolean))].sort()
+  const vEnd = ends.includes(filt.opsEnd) ? filt.opsEnd : ""
+  const rows = spool2.filter((r) => !vEnd || r.end === vEnd)
 
   const sum = (k: "budgetUsd" | "budgetKrw" | "leftAdj" | "spentEffKrw") =>
     rows.reduce((a, r) => a + (r[k] || 0), 0)
@@ -381,7 +395,57 @@ export function OpsView({ D }: { D: OpsPayload }) {
   const gLeft = sum("leftAdj")
   const gSpent = sum("spentEffKrw")
 
-  const cols = [CHECK_COL(plans, setEditId), ...BASE_COLS, CARRY_COL, ...TOTAL_COLS]
+  /**
+ * 진척률 · 소진율 — 소진액 바로 오른쪽에 세운다.
+ *
+ * 두 값을 나란히 두면 "기간은 절반 지났는데 예산은 8할을 썼다" 가 한 줄에서 보인다.
+ * 따로 떨어뜨리면 그 비교를 눈으로 다시 해야 한다. 차이가 크게 벌어진 라인만 틴트로
+ * 드러낸다 — 전부 색을 칠하면 어느 것이 문제인지 오히려 안 보인다.
+ */
+const PACE_COLS: Col<CarryRow>[] = [
+  {
+    k: "progress",
+    l: "진척률",
+    w: 52,
+    cls: "text-right",
+    // 서버가 각 국가 **현지 날짜**로 센 값이다. 화면에서 다시 계산하면 시간대만큼 어긋난다.
+    fmt: (v, r) =>
+      v === null || v === undefined ? (
+        ""
+      ) : (
+        <span title={`${r.start} ~ ${r.end} 중 ${f1(v)}% 경과 (현지 기준) · 잔여 ${r.daysLeft ?? "-"}일`}>
+          {f0(v)}%
+        </span>
+      ),
+    csv: (v) => (v === null || v === undefined ? "" : f0(v)),
+  },
+  {
+    k: "spentRate",
+    l: "소진율",
+    w: 52,
+    cls: "text-right",
+    fmt: (v, r) => {
+      if (v === null || v === undefined) return <span className="text-[11px] text-fog">—</span>
+      // 기간보다 15%p 넘게 앞서면 과소진, 뒤처지면 미소진. 그 폭 안은 정상으로 본다.
+      const gap = r.progress === null || r.progress === undefined ? null : v - r.progress
+      const tint = v > 100 ? "tint tint-neg" : gap === null ? "" : gap > 15 ? "tint tint-warn" : gap < -15 ? "tint tint-info" : ""
+      return (
+        <b
+          className={cn("font-semibold", tint)}
+          title={
+            `실소진 ${f0(r.spentEffKrw)} ÷ 품의예산 ${f0(r.budgetKrw)} = ${f1(v)}%` +
+            (gap === null ? "" : ` · 진척률 대비 ${gap > 0 ? "+" : ""}${f1(gap)}%p`)
+          }
+        >
+          {f0(v)}%
+        </b>
+      )
+    },
+    csv: (v) => (v === null || v === undefined ? "" : f1(v)),
+  },
+]
+
+const cols = [CHECK_COL(plans, setEditId), ...BASE_COLS, CARRY_COL, ...TOTAL_COLS, ...PACE_COLS]
   const editRow = editId ? carry.rows.find((r) => r.id === editId) : undefined
   const editDests = editRow ? editRow.dests.map((id) => carry.rows.find((r) => r.id === id)!) : []
   const total: TableRow = {
@@ -408,6 +472,8 @@ export function OpsView({ D }: { D: OpsPayload }) {
         />
         <FilterSelect fkey="opsPhase" label="PHASE" values={phases} />
         <MultiFilterSelect fkey="opsMed" label="매체" values={meds} />
+        <FilterSelect fkey="opsStart" label="시작일" values={starts} />
+        <FilterSelect fkey="opsEnd" label="종료일" values={ends} />
         <label className="pill flex cursor-pointer items-center gap-2 border border-graphite/15 bg-paper px-4 py-2 text-[13px]">
           <input
             type="checkbox"
@@ -437,7 +503,10 @@ export function OpsView({ D }: { D: OpsPayload }) {
               ·{" "}
             </>
           ) : null}
-          {rows.length}행 · 품의 <b>{f0(gBud)}</b> · 실소진 <b>{f0(gSpent)}</b> · 잔여{" "}
+          {rows.length}행
+          {vStart ? ` · ${vStart} 시작` : ""}
+          {vEnd ? ` · ${vEnd} 종료` : ""} · 품의 <b>{f0(gBud)}</b> · 실소진{" "}
+          <b>{f0(gSpent)}</b> · 잔여{" "}
           <b className={cn("font-semibold", gLeft < 0 && "tint tint-neg")}>{f0(gLeft)}</b>
         </Hint>
       </Toolbar>
@@ -446,7 +515,14 @@ export function OpsView({ D }: { D: OpsPayload }) {
         행을 누르면 아래에 <b className="font-semibold">월별 소진</b>이 펼쳐집니다 · 월별 값은
         한 달에 하나 — <b className="font-semibold">확정</b>(인보이스) &gt;{" "}
         <span className="tint tint-info text-[11.5px]">수기</span> &gt;{" "}
-        <span className="tint tint-ok text-[11.5px]">시트</span>(Criteo 실시간, {D.sheet.asOf || "미수집"}까지)
+        <span className="tint tint-ok text-[11.5px]">시트</span>(Criteo 실시간 {D.sheet.asOf || "미수집"}까지
+        {D.sheet.raw?.daily?.asOf
+          ? ` · 통합 raw 매일 ${D.sheet.raw.daily.asOf}까지 (${D.sheet.raw.daily.meds.join("·")})`
+          : ""}
+        {D.sheet.raw?.snapshots?.length
+          ? ` · 굳힌 구간 ${D.sheet.raw.snapshots.map((s) => `${s.med} ~${s.asOf}`).join(", ")}`
+          : ""}
+        )
         &gt; <i>계획</i>(실적 아님) · <b className="font-semibold">세팅 일예산은 Criteo 만</b>{" "}
         냅니다 — (품의예산 KRW − 실소진 KRW) ÷ 환율 ÷ 잔여일 · 왼쪽 <b className="font-semibold">[이관]</b> 버튼으로
         어느 라인에 얼마를 넣을지 지정하면 <b className="font-semibold">다음 Phase</b> 로 넘어갑니다(화면 계산)
@@ -500,8 +576,38 @@ function monthRows(row: TableRow): TableRow[] {
     __type: "detail" as const,
     start: `${m}월`,
     end: <SrcValue src={r.monSrc[m]} mon={m} text={r.monSrc[m] || "?"} />,
+    // 그 달 금액을 원화로 바꿀 때 실제로 쓴 환율. 품의환율 자리에 세워 두면 품의 때
+    // 잡은 환율과 실제 청구 환율이 위아래로 붙어 차이가 그냥 보인다.
+    budgetFx: <BillFx v={r.monFx?.[m]} est={!!r.monFxEst?.[m]} cur={r.setCur} mon={m} />,
     setCur: r.setCur,
     natTotal: r.monNat[m] !== undefined ? f2(r.monNat[m]) : "",
     spentEffKrw: f0(r.monKrw[m]),
   }))
+}
+
+/**
+ * 월별 청구환율 — 그 달 소진액(KRW)과 소진액(세팅통화)을 잇는 환율. 품의환율 자리에
+ * 세워 두면 품의 때 잡은 환율과 실제 청구 환율이 위아래로 붙어 차이가 그냥 보인다.
+ *
+ * 원통화가 인보이스에서 직접 온 값이 아닌 달(`est`)은 이 값이 청구환율이 아니라 행에
+ * 쓴 환산환율이다. 숨기면 그 달만 칸이 비어 더 헷갈리므로, 숫자는 그대로 두고 툴팁에서
+ * 무엇인지 밝힌다.
+ */
+function BillFx({ v, est, cur, mon }: { v?: number; est: boolean; cur: string; mon: string }) {
+  if (!v) return null
+  return (
+    <span
+      className="inline-flex flex-col items-end leading-[1.1]"
+      title={
+        est
+          ? `${mon}월 환산환율 — 1 ${cur} = ${f2(v)}원 · 그 달 원통화가 인보이스로 확인된 값이 아니라 이 행의 환율로 환산한 금액이라, 그 달의 청구환율은 아닙니다`
+          : `${mon}월 청구환율 — 1 ${cur} = ${f2(v)}원 (인보이스가 실제로 적용한 환율)`
+      }
+    >
+      <span className={cn("whitespace-nowrap text-[10.5px] tabular-nums", est && "text-fog")}>
+        {f2(v)}
+      </span>
+      <span className="text-[9px] text-fog">청구환율</span>
+    </span>
+  )
 }

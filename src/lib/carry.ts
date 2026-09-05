@@ -46,6 +46,8 @@ export interface CarryRow extends OpsRow {
   leftAdj: number | null
   setLifeAdj: number | null
   setDailyAdj: number | null
+  /** 소진율(%) — 실소진 ÷ 품의예산 KRW. 화면에서 채운다 */
+  spentRate: number | null
 }
 
 /** 이관이 실제로 걸린 행인지 */
@@ -64,6 +66,7 @@ const base = (r: OpsRow): CarryRow => ({
   leftAdj: r.leftKrw,
   setLifeAdj: r.setLife,
   setDailyAdj: null,
+  spentRate: null,
 })
 
 /**
