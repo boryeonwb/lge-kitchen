@@ -305,6 +305,11 @@ export function SettlementView({ D }: { D: SettlePayload }) {
 
   const gTax = sumKrw(rows, "taxKrw")
   const gFee = sumKrw(rows, "billFee")
+  // HSAD 수수료 = 세금계산서 발행의 매체비KRW × 13%. 기준이 되는 매체비도 같이
+  // 보여 준다 — 비율 하나로 나온 값이라 근거가 안 보이면 대조할 수가 없다.
+  const gMedia = sumKrw(rows, "billMedia")
+  const HSAD_RATE = 0.13
+  const gHsad = Math.round(gMedia * HSAD_RATE)
   const nIssued = rows.filter((r) => r.issuedMonth).length
   const nOv = rows.filter((r) => r.taxOv).length
 
@@ -326,6 +331,12 @@ export function SettlementView({ D }: { D: SettlePayload }) {
             v: f0(gFee),
             u: "원",
             s: `${eok(gFee)}억원`,
+          },
+          {
+            k: "HSAD 수수료",
+            v: f0(gHsad),
+            u: "원",
+            s: `매체비KRW ${f0(gMedia)}원 × ${HSAD_RATE * 100}%`,
           },
           {
             k: "세금계산서 발행",
