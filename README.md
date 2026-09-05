@@ -59,24 +59,27 @@ uvicorn main:app --port 8000
 
 `npm run typecheck` · `npm run build` 로 검사·빌드합니다.
 
-## 로여 배포 (지금 바로 쓸 수 있는 방법)
+## 로컬 배포 (지금 바로 쓸 수 있는 방법)
 
-클러스토에 올리기 전에 **사내망 로여 사이트**로 돌릴 수 있다. 배포에서 nginx 가 하는
-일(정적 서밙 + `/api` 프록시)를 `serve_local.py` 가 대신한다 — Docker 가 필요 없다.
+클러스터에 올리기 전에 **사내망 로컬 사이트**로 돌릴 수 있다. 배포에서 nginx 가 하는
+일(정적 서빙 + `/api` 프록시)을 `serve_local.py` 가 대신한다 — Docker 가 필요 없다.
 
 ```bash
 npm run build            # dist/ 만들기 (한 번만, 코드를 고치면 다시)
 python serve_local.py    # 0.0.0.0:3100 · /api → 127.0.0.1:8000
 ```
 
-정산 백엔드도 같이 띄워야 한다(이 앱은 숫자를 직접 가지지 않는다):
+정산 백엔드도 같이 띄워야 한다 (이 앱은 숫자를 직접 가지지 않는다):
 
-```bash
-cd <lge-billing-dashboard>/backend
-LGE_WORK=C:\lgwork LGE_STATE=C:\lgworkdv_state LGE_PROJECT=C:\lgwork   uvicorn main:app --host 0.0.0.0 --port 8000
+```bat
+cd <lge-billing-dashboard>\backend
+set LGE_WORK=C:\lgwork
+set LGE_STATE=C:\lgwork\adv_state
+set LGE_PROJECT=C:\lgwork
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-둘을 한 번에 띄우는 **`로컬_실행.bat`** 이 같은 폴더에 있다(경로는 파일 상단에서 수정).
+둘을 한 번에 띄우는 **`로컬_실행.bat`** 이 같은 폴더에 있다 (경로는 파일 상단에서 수정).
 
 | 여는 주소 | 누가 |
 |---|---|
@@ -85,23 +88,23 @@ LGE_WORK=C:\lgwork LGE_STATE=C:\lgworkdv_state LGE_PROJECT=C:\lgwork   uvicorn 
 
 알아둘 점
 
-- `npm run dev`(:3100)는 **localhost 에만** 붙어 툼자만 보인다. 공유하려면 `serve_local.py` 를 쓴다.
-- 프록시를 두는 이유는 **CORS** 다. 밌라우지가 백엔드를 직접 부르면 원즜이 달라 막힌다 —
-  같은 원즜으로 들어와 서버가 넘기면 그 백엔드를 그대로 쓸 수 있다(배포의 nginx 와 같은 방식).
-- 백엔드가 안 띄어 있으면 화면이 조용히 뱄다 대신 상단에 **사유가 뜼다**(프록시가 502 에
-  연결 오류를 싣는다).
-- **내부 상태 파일이 필요하다.** 사람이 내부 대시보드에서 넣은 값(HSAD 내부환율·
-  수기수정·발행월·품의환율·월별 원통화)은 `LGE_STATE` 에만 있다. 로여에서 운영과 같은
-  숫자를 보려면 그 폴더를 운영분으로 초기화해야 한다:
+- `npm run dev` 는 **localhost 에만** 붙어 혼자만 볼 수 있다. 공유하려면 `serve_local.py` 를 쓴다.
+- 프록시를 두는 이유는 **CORS** 다. 브라우저가 백엔드를 직접 부르면 출처가 달라 막히는데,
+  같은 출처로 들어와 서버가 넘겨 주면 백엔드를 그대로 쓸 수 있다 (배포의 nginx 와 같은 구조).
+- 백엔드가 안 떠 있으면 화면이 조용히 비는 대신 상단에 **사유가 뜬다** — 프록시가 502 응답에
+  연결 오류를 실어 준다.
+- **내부 상태 파일이 필요하다.** 사람이 내부 대시보드에서 넣은 값(HSAD 내부환율 · 매체비/수수료
+  수기수정 · 세금계산서 발행월 · 품의환율 · 월별 원통화)은 `LGE_STATE` 폴더에만 있다. 로컬에서
+  운영과 같은 숫자를 보려면 그 폴더를 운영분으로 채워야 한다:
 
   ```bash
   curl -s https://lge-billing-dashboard.wisebirds.ai/api/data -o prod.json
-  # prod.json 의 issueMonths → <LGE_STATE>/issue_months.json
-  # 행별 taxOv       → <LGE_STATE>/tax_overrides.json
+  # prod.json 의 issueMonths  → <LGE_STATE>/issue_months.json
+  # 행별 taxOv               → <LGE_STATE>/tax_overrides.json
   ```
 
-  이 값이 없으면 발행월이 전부 '발행'으로, 수기수정 이력이 모두 보이지 않는 상태로
-  뜨다 — 숫자는 나오니 그냥 넘어가기 쉬운 함정이다.
+  이 값이 없으면 **발행월이 전부 '미발행'으로, 수기수정 이력이 하나도 없는 상태**로 뜬다.
+  숫자 자체는 나오기 때문에 그냥 넘어가기 쉬운 함정이다.
 
 ## 배포
 

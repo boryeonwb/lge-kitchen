@@ -156,7 +156,7 @@ export function App() {
           크림 캔버스 위 헤어라인 하나로 떠 있고, 진한 바를 두지 않는다. */}
       <header className="sticky top-0 z-[60] border-b border-graphite/10 bg-cream/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1720px] flex-wrap items-center gap-x-8 gap-y-3 px-8 py-4">
-          <h1 className="display m-0 text-[22px]">LG전자 냉장고 운영·정산 대시보드</h1>
+          <h1 className="display m-0 text-[22px]">LGE REF 운영·정산 대시보드</h1>
 
           <nav className="flex gap-7">
             {TABS.map(([id, label]) => (
