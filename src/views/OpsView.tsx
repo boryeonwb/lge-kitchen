@@ -81,27 +81,43 @@ const BASE_COLS: Col<CarryRow>[] = [
     k: "ctry",
     l: "국가",
     w: 84,
-    // 한글명을 같이 쓰면 열이 그만큼 넓어져 가로 스크롤이 생긴다 → 툴팁으로 뺀다
-    fmt: (v, r) => <span title={r.ctryKor && r.ctryKor !== v ? r.ctryKor : undefined}>{v}</span>,
+    // 한글명을 같이 쓰면 열이 그만큼 넓어진다 → 툴팁으로 뺀다.
+    // 폭이 고정이라 긴 이름은 잘리므로 전체 이름도 툴팁에 함께 담는다.
+    fmt: (v, r) => (
+      <span title={r.ctryKor && r.ctryKor !== v ? `${v} (${r.ctryKor})` : v}>{v}</span>
+    ),
     csv: (v) => v,
   },
-  { k: "phase", l: "PHASE", w: 54, cls: "text-center" },
-  { k: "med", l: "매체", w: 70 },
-  { k: "start", l: "시작일\n(현지)", w: 76, cls: "text-center", csv: (v) => v },
+  { k: "phase", l: "PHASE", w: 50, cls: "text-center" },
+  { k: "med", l: "매체", w: 76 },
+  // 기간은 한 해 안에 들어 있어 월-일만 낸다 — 열을 좁혀야 가로 스크롤이 안 생긴다.
+  // 연도는 툴팁에 남기고, CSV 에는 전체 날짜가 그대로 나간다.
+  {
+    k: "start",
+    l: "시작일\n(현지)",
+    w: 58,
+    cls: "text-center",
+    fmt: (v) => <span title={v}>{String(v || "").slice(5)}</span>,
+    csv: (v) => v,
+  },
   {
     k: "end",
     l: "종료일\n(현지)",
-    w: 76,
+    w: 58,
     cls: "text-center",
     // 기간은 각 국가 현지 날짜다 — 잔여일도 그 나라 '오늘' 로 센다
-    fmt: (v, r) => <span title={`잔여 ${r.daysLeft ?? "-"}일 (현지 기준)`}>{v}</span>,
+    fmt: (v, r) => (
+      <span title={`${v} · 잔여 ${r.daysLeft ?? "-"}일 (현지 기준)`}>
+        {String(v || "").slice(5)}
+      </span>
+    ),
     csv: (v) => v,
   },
-  { k: "budgetUsd", l: "품의\n(USD)", w: 84, cls: "text-right", fmt: f2, csv: f2 },
+  { k: "budgetUsd", l: "품의\n(USD)", w: 78, cls: "text-right", fmt: f2, csv: f2 },
   {
     k: "budgetKrw",
     l: "품의\n(KRW)",
-    w: 96,
+    w: 90,
     cls: "text-right",
     fmt: (v) => <b>{f0(v)}</b>,
     csv: f0,
@@ -109,7 +125,7 @@ const BASE_COLS: Col<CarryRow>[] = [
   {
     k: "budgetFx",
     l: "품의\n환율",
-    w: 62,
+    w: 58,
     cls: "text-right",
     fmt: (v) => (v ? f2(v) : <span className="text-[11px] text-fog">미입력</span>),
     csv: (v) => (v ? f2(v) : "미입력"),
@@ -118,7 +134,7 @@ const BASE_COLS: Col<CarryRow>[] = [
     // 이관을 반영한 값을 읽는다 — 토글이 꺼져 있으면 서버가 준 값이 그대로 들어 있다
     k: "setLifeAdj",
     l: "세팅\n총예산",
-    w: 96,
+    w: 88,
     cls: "text-right",
     // 매체 캠페인의 총예산 칸에 넣을 값 — 이미 태운 몫을 빼고 넣으면 일찍 멈춘다
     fmt: (v, r) =>
@@ -145,7 +161,7 @@ const BASE_COLS: Col<CarryRow>[] = [
     // 다른 매체는 계획값 기반이 되고, 계획값으로 만든 일예산은 매체에 넣으면 안 된다.
     k: "setDailyAdj",
     l: "세팅\n일예산",
-    w: 96,
+    w: 88,
     cls: "text-right",
     fmt: (v, r) => {
       if (r.med !== "criteo")
@@ -177,11 +193,11 @@ const BASE_COLS: Col<CarryRow>[] = [
     csv: f2,
   },
   // 오른쪽 월별 원통화 칸이 모두 이 통화다 → 고정 영역 끝에 둔다
-  { k: "setCur", l: "세팅\n통화", w: 48, cls: "text-center" },
+  { k: "setCur", l: "세팅\n통화", w: 44, cls: "text-center" },
   {
     k: "leftAdj",
     l: "잔여액\n(KRW)",
-    w: 96,
+    w: 90,
     cls: "text-right",
     // 아직 어느 달에도 배분되지 않은 돈. 종료됐는데 남아 있으면 그만큼 못 쓰고 끝난 것이다.
     // 다음 차수로 넘긴 돈은 못 쓴 게 아니므로 ⚠ 가 자연히 사라진다(잔여액이 0 이 된다).
@@ -215,7 +231,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
   {
     k: "natTotal",
     l: "소진액\n(통화)",
-    w: 94,
+    w: 86,
     cls: "text-right",
     // 계획(자동기입)은 실적이 아니므로 빼고 더한 값이다
     fmt: (v) => (v ? <span title="확정 + 수기 + 시트 · 계획은 제외">{f2(v)}</span> : ""),
@@ -224,7 +240,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
   {
     k: "spentEffKrw",
     l: "소진액\n(KRW)",
-    w: 96,
+    w: 90,
     cls: "text-right",
     fmt: (v, r) => {
       if (!v) return ""
@@ -254,7 +270,7 @@ const TOTAL_COLS: Col<CarryRow>[] = [
 const CHECK_COL = (picked: Set<string>, toggle: (id: string) => void): Col<CarryRow> => ({
   k: "canCarry",
   l: "이관",
-  w: 30,
+  w: 28,
   cls: "text-center",
   nosort: true,
   fmt: (_v, r) =>
@@ -290,7 +306,7 @@ const CARRY_COL = (
 ): Col<CarryRow> => ({
   k: "carryOut",
   l: "이관\n(KRW)",
-  w: 110,
+  w: 100,
   cls: "text-right",
   nosort: true,
   fmt: (_v, r) => (

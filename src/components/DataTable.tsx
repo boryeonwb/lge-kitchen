@@ -203,6 +203,13 @@ export function DataTable({
       </div>
       <div ref={scrollRef} className="scroll">
         <table ref={tableRef} className={cn("tbl", !grouped && "nogroup")}>
+          {/* 폭을 여기서 못 박는다. minWidth 만 주면 필터를 바꿔 긴 값이 들어올 때마다
+              열이 밀려 가로 스크롤이 생겼다 사라졌다 한다 — 표가 매번 다른 폭이 된다. */}
+          <colgroup>
+            {cols.map((c) => (
+              <col key={c.id ?? c.k} style={{ width: c.w }} />
+            ))}
+          </colgroup>
           <thead>
             {grouped ? (
               <tr className="grouprow">
@@ -227,7 +234,6 @@ export function DataTable({
                 return (
                   <th
                     key={c.id ?? c.k}
-                    style={c.w ? { minWidth: c.w } : undefined}
                     className={cn(
                       sortable ? "cursor-pointer" : "cursor-default",
                       c.grp ? COL_GROUPS[c.grp]?.head : undefined,

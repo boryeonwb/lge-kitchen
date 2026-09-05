@@ -99,6 +99,9 @@ body {
 .tbl {
   border-collapse: separate;
   border-spacing: 0;
+  /* colgroup 의 폭을 그대로 쓴다 — 내용 길이에 따라 열이 밀리지 않아야
+     필터를 바꿔도 표 폭이 그대로다(가로 스크롤이 생겼다 없어지지 않는다). */
+  table-layout: fixed;
   width: 100%;
   background: var(--color-paper);
   font-variant-numeric: tabular-nums;
@@ -117,6 +120,7 @@ body {
   padding: 7px 5px;
   border-right: 1px solid rgba(255, 255, 255, 0.14);
   white-space: pre-line;
+  overflow: hidden;
   user-select: none;
 }
 
@@ -144,7 +148,10 @@ body {
   padding: 5px 5px;
   font-size: 12px;
   border-bottom: 1px solid rgba(57, 55, 55, 0.07);
+  /* 폭이 고정이라 긴 값은 잘린다. 잘렸다는 걸 알 수 있게 말줄임표를 남긴다. */
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tbl tbody tr:hover td { background: var(--color-cream); }

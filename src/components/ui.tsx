@@ -251,12 +251,16 @@ export function KpiCards({ items }: { items: Kpi[] }) {
   )
 }
 
-/** 국가 셀 — 영문 표기 옆에 한글명을 작게 붙인다 */
+/**
+ * 국가 셀 — 영문 표기 옆에 한글명을 작게 붙인다.
+ * 열 폭이 고정이라 긴 이름은 잘린다(`Czech Republ…`) → 전체 이름을 툴팁에 담는다.
+ */
 export function CountryCell({ ctry, kor }: { ctry: string; kor?: string }) {
+  const full = kor && kor !== ctry ? `${ctry} (${kor})` : ctry
   return (
-    <>
+    <span title={full}>
       {ctry}
       {kor && kor !== ctry ? <span className="ml-1.5 text-[11px] text-fog">{kor}</span> : null}
-    </>
+    </span>
   )
 }

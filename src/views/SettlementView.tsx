@@ -1,7 +1,6 @@
 import { DataTable, type Col, type TableRow } from "#/components/DataTable"
 import {
   Card,
-  CountryCell,
   KpiCards,
   FilterSelect,
   Hint,
@@ -31,43 +30,46 @@ import { ISSLBL, MONLBL, eok, f0, f2, issMatch, issValues } from "#/lib/format"
 const notBilled = (r: SettleRow) => (r.owner === "HSAD" ? "notbilled" : "")
 
 const COLS: Col<SettleRow>[] = [
-  { k: "sol", l: "솔루션", w: 92 },
+  { k: "sol", l: "솔루션", w: 80 },
   {
     k: "phase",
     l: "Phase",
-    w: 66,
+    w: 54,
     cls: "text-center",
     // 캠페인명에 Phase 토큰이 없는 라인(DST·무효반영·총액만 오는 매체)은 공란
     fmt: (v) => v || <span className="text-[11px] text-fog">—</span>,
     csv: (v) => v || "",
   },
-  { k: "med", l: "매체", w: 78 },
+  { k: "med", l: "매체", w: 70 },
   {
     k: "ctry",
     l: "국가",
-    w: 100,
-    fmt: (v, r) => <CountryCell ctry={v} kor={r.ctryKor} />,
+    w: 88,
+    // 한글명을 같이 쓰면 열이 넓어져 다른 열이 잘린다 → 툴팁으로 뺀다(운영 탭과 동일)
+    fmt: (v, r) => (
+      <span title={r.ctryKor && r.ctryKor !== v ? `${v} (${r.ctryKor})` : v}>{v}</span>
+    ),
     csv: (v) => v,
   },
 
   // ① 인보이스 — 매체가 발행한 인보이스에서 읽은 값
-  { k: "cur", l: "통화", w: 46, cls: "text-center", grp: "inv" },
+  { k: "cur", l: "통화", w: 40, cls: "text-center", grp: "inv" },
   {
     k: "invTotal",
     l: "인보이스\n최종금액",
-    w: 112,
+    w: 96,
     cls: "text-right",
     grp: "inv",
     // 그 인보이스(계정)의 발행 총액이라 집계행마다 되풀이된다 → 합계를 내지 않는다
     fmt: (v) => <span title="이 라인이 속한 인보이스(계정)의 발행 총액">{f2(v)}</span>,
     csv: f2,
   },
-  { k: "dst", l: "DST안분", w: 84, cls: "text-right", grp: "inv", fmt: f2, csv: f2 },
-  { k: "invalid", l: "무효반영", w: 84, cls: "text-right", grp: "inv", fmt: f2, csv: f2 },
+  { k: "dst", l: "DST안분", w: 72, cls: "text-right", grp: "inv", fmt: f2, csv: f2 },
+  { k: "invalid", l: "무효반영", w: 72, cls: "text-right", grp: "inv", fmt: f2, csv: f2 },
   {
     k: "billed",
     l: "광고비net",
-    w: 104,
+    w: 90,
     cls: "text-right",
     grp: "inv",
     fmt: (v) => <span title="집행 + DST안분 + 무효반영">{f2(v)}</span>,
@@ -78,7 +80,7 @@ const COLS: Col<SettleRow>[] = [
   {
     k: "taxFx",
     l: "적용환율",
-    w: 80,
+    w: 70,
     cls: "text-right",
     grp: "tax",
     fmt: (v) => (v === null || v === undefined ? <span className="text-[11px] text-fog">미입력</span> : f2(v)),
@@ -90,7 +92,7 @@ const COLS: Col<SettleRow>[] = [
   {
     k: "billMedia",
     l: "매체비KRW",
-    w: 122,
+    w: 102,
     cls: "text-right",
     grp: "tax",
     cellCls: (r) =>
@@ -116,7 +118,7 @@ const COLS: Col<SettleRow>[] = [
   {
     k: "billFee",
     l: "와이즈버즈\n수수료KRW",
-    w: 118,
+    w: 98,
     cls: "text-right",
     grp: "tax",
     cellCls: (r) => (r.taxOv?.fee != null ? "edited" : ""),
@@ -131,7 +133,7 @@ const COLS: Col<SettleRow>[] = [
   {
     k: "taxKrw",
     l: "최종 세금계산서\n발행 금액",
-    w: 138,
+    w: 112,
     cls: "text-right",
     grp: "tax",
     cellCls: (r) => (r.taxOv ? "edited" : ""),
@@ -151,7 +153,7 @@ const COLS: Col<SettleRow>[] = [
   {
     k: "issuedMonth",
     l: "세금계산서\n발행월",
-    w: 98,
+    w: 78,
     cls: "text-center",
     grp: "tax",
     fmt: (v) =>
@@ -165,7 +167,7 @@ const COLS: Col<SettleRow>[] = [
   {
     k: "owner",
     l: "처리\n주체",
-    w: 70,
+    w: 56,
     cls: "text-center",
     grp: "tax",
     fmt: (v) => (
@@ -186,7 +188,7 @@ const COLS: Col<SettleRow>[] = [
 const MON_COL: Col<SettleRow> = {
   k: "mon",
   l: "월",
-  w: 62,
+  w: 50,
   cls: "text-center",
   fmt: MONLBL,
   csv: MONLBL,

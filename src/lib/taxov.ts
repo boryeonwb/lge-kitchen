@@ -22,10 +22,13 @@ const line = (e: Omit<TaxOvRec, "history">, head: string) =>
     .filter(Boolean)
     .join(" · ")
 
-/** 셀에 붙일 수정 내역 — 마우스를 올리면 보이는 글. 최신이 먼저, 그 아래 이전 이력. */
+/**
+ * 셀에 붙일 수정 내역 — 마우스를 올리면 보이는 글.
+ *
+ * **최종 저장본만 낸다**(지시). 이전 이력까지 쌓으면 툴팁이 여러 줄로 늘어져 정작
+ * 지금 적용된 값이 무엇인지 한눈에 안 들어온다 — 이 화면에서 알아야 하는 건
+ * "지금 이 숫자가 왜 이 값인가" 하나다.
+ */
 export function ovTitle(ov: TaxOvRec): string {
-  return [
-    line(ov, "✎ 내부 대시보드에서 수정됨"),
-    ...ov.history.map((h, i) => line(h, `   이전 ${ov.history.length - i}`)),
-  ].join("\n")
+  return line(ov, "✎ 내부 대시보드에서 수정됨")
 }
