@@ -55,7 +55,7 @@ export interface SettlePayload {
 // ───────────────────────────── 운영
 
 /** 월별 소진값의 출처 — 확정(인보이스) / 수기(입력) / 계획(자동기입) */
-export type MonSrc = "확정" | "수기" | "계획" | ""
+export type MonSrc = "확정" | "수기" | "시트" | "계획" | ""
 
 /** 품의예산 한 줄 — 솔루션 × 국가(차수) × 매체 */
 export interface OpsRow {
@@ -93,6 +93,15 @@ export interface OpsRow {
   monKrw: Record<string, number>
   monSrc: Record<string, MonSrc>
   monNat: Record<string, number>
+
+  /** 실소진 = 계획(자동기입)을 뺀 합. 세팅 일예산의 분자를 만드는 값 */
+  spentEffKrw: number
+  /** 그중 Criteo 실시간 시트로 메운 몫 */
+  sheetKrw: number
+  /** 실소진의 세팅통화 합 */
+  natTotal: number
+  /** 인보이스가 있는 달에서 시트/인보이스 비율. 1 에서 크게 벗어나면 시트를 믿기 어렵다 */
+  sheetRatio?: number | null
 }
 
 export interface OpsPayload {
@@ -101,6 +110,8 @@ export interface OpsPayload {
   /** 소진액이 인보이스로 확정된 마지막 달. 이후 달은 계획값이다 */
   closedMonth: string
   mix: { fetchedAt: string; n: number; totalUsd: number }
+  /** Criteo 실시간 소진 시트 — 어디까지 담겼는지와, 캠페인명으로 못 붙인 것들 */
+  sheet: { asOf: string; fetchedAt: string; unmatched: Array<{ camp: string; usd: number }> }
   stats: {
     rows: number | null
     budgetUsd: number | null

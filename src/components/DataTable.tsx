@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react"
+import { Fragment, useEffect, useLayoutEffect, useRef, type ReactNode } from "react"
 import { useView } from "#/lib/view"
 import { cn } from "#/lib/utils"
 
@@ -54,6 +54,14 @@ interface Props {
   freeze?: number
   /** 묶음 헤더 줄을 낼지 — 운영 탭처럼 묶음이 없는 표는 한 줄만 낸다 */
   grouped?: boolean
+  /**
+   * 행을 눌렀을 때 바로 아래에 펼칠 내용. 주면 그 행이 클릭 가능해진다.
+   * 열이 서른 개 넘던 표를 두 열로 접고, 세부는 여기로 내렸다.
+   */
+  renderDetail?: (r: TableRow) => ReactNode
+  /** 펼친 행 id 집합과 토글 — 상태는 화면이 들고 있는다(정렬·필터에도 살아남게) */
+  expanded?: Set<string>
+  onToggle?: (id: string) => void
 }
 
 interface SortLike {
@@ -80,7 +88,17 @@ function sortRows(rows: TableRow[], st: SortLike): TableRow[] {
     .concat(totals)
 }
 
-export function DataTable({ cols, rows, sortKey, nosort, freeze, grouped }: Props) {
+export function DataTable({
+  cols,
+  rows,
+  sortKey,
+  nosort,
+  freeze,
+  grouped,
+  renderDetail,
+  expanded,
+  onToggle,
+}: Props) {
   const { tab, sort, toggleSort, registerTable } = useView()
   const key = sortKey || tab
   const st = nosort ? undefined : sort[key]
@@ -110,7 +128,10 @@ export function DataTable({ cols, rows, sortKey, nosort, freeze, grouped }: Prop
         touched.push(el)
       }
       mark(ths[i])
-      for (const row of Array.from(tb.tBodies[0].rows)) mark(row.cells[i])
+      for (const row of Array.from(tb.tBodies[0].rows)) {
+        if (row.classList.contains("detail")) continue // colSpan 한 칸짜리 상세 행
+        mark(row.cells[i])
+      }
       widths.push(w)
       x += w
     }
@@ -238,21 +259,33 @@ export function DataTable({ cols, rows, sortKey, nosort, freeze, grouped }: Prop
                   </tr>
                 )
               }
+              const id = String(r.id ?? i)
+              const open = !!expanded?.has(id)
               return (
-                <tr key={r.id ?? i}>
-                  {cols.map((c) => (
-                    <td
-                      key={c.id ?? c.k}
-                      className={cn(
-                        c.grp ? COL_GROUPS[c.grp]?.cell : undefined,
-                        c.cls,
-                        c.cellCls?.(r),
-                      )}
-                    >
-                      {c.fmt ? c.fmt(r[c.k], r) : (r[c.k] ?? "")}
-                    </td>
-                  ))}
-                </tr>
+                <Fragment key={id}>
+                  <tr
+                    className={cn(renderDetail && "cursor-pointer", open && "opened")}
+                    onClick={renderDetail ? () => onToggle?.(id) : undefined}
+                  >
+                    {cols.map((c) => (
+                      <td
+                        key={c.id ?? c.k}
+                        className={cn(
+                          c.grp ? COL_GROUPS[c.grp]?.cell : undefined,
+                          c.cls,
+                          c.cellCls?.(r),
+                        )}
+                      >
+                        {c.fmt ? c.fmt(r[c.k], r) : (r[c.k] ?? "")}
+                      </td>
+                    ))}
+                  </tr>
+                  {open && renderDetail ? (
+                    <tr className="detail">
+                      <td colSpan={cols.length}>{renderDetail(r)}</td>
+                    </tr>
+                  ) : null}
+                </Fragment>
               )
             })}
           </tbody>

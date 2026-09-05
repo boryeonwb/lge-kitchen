@@ -162,6 +162,16 @@ body {
   color: var(--color-fog);
 }
 
+/* 펼친 행 — 눌린 행을 크림으로 눌러 두고, 그 아래 상세 칸은 배경 없이 넓게 쓴다 */
+.tbl tbody tr.opened td { background: var(--color-cream); }
+.tbl tbody tr.opened td.fz { background: var(--color-cream); }
+.tbl tbody tr.detail > td {
+  background: var(--color-cream);
+  white-space: normal;
+  border-bottom: 1px solid rgba(57, 55, 55, 0.14);
+  padding: 0;
+}
+
 /* 소계 — 크림 밴드. 총계 — 그래파이트 헤어라인 위의 굵은 줄 */
 .tbl tr.sub td {
   background: var(--color-cream) !important;
