@@ -3,20 +3,37 @@ import { useView } from "#/lib/view"
 import { MONLBL } from "#/lib/format"
 import { cn } from "#/lib/utils"
 
+/**
+ * 공통 UI — Popcorn 스타일.
+ *
+ * 규칙 두 가지만 지키면 나머지는 따라온다.
+ *   · 인터랙티브 표면(버튼·배지·드롭다운)은 전부 pill(100px)
+ *   · 20px 이상 제목만 세리프(.display), 그 아래는 전부 사스
+ * 그림자는 --shadow-soft 하나뿐이고 다른 값은 쓰지 않는다.
+ */
+
+/** 페이퍼 화이트 판. 제목은 세리프, 설명은 안개색 사스 한 단락. */
 export function Card({
   title,
+  note,
   children,
   className,
 }: {
   title: ReactNode
+  /** 제목 아래 설명 — 읽는 법·계산 근거처럼 한 번 읽으면 되는 내용 */
+  note?: ReactNode
   children: ReactNode
   className?: string
 }) {
   return (
-    <div className={cn("overflow-hidden rounded-md border border-line bg-surface", className)}>
-      <h2 className="m-0 border-b border-line bg-[#fafbfc] px-3 py-2 text-[12.5px] font-bold text-ink2">
-        {title}
-      </h2>
+    <div className={cn("overflow-hidden rounded-[12px] bg-paper shadow-soft", className)}>
+      <div className="border-b border-graphite/10 px-6 py-4">
+        <h2 className="display m-0 text-[22px]">{title}</h2>
+        {/* 한 줄이 화면 폭만큼 길어지면 읽히지 않는다 — 측정 길이를 잡아 둔다 */}
+        {note ? (
+          <p className="m-0 mt-2 max-w-[96ch] text-[12px] leading-[1.6] text-fog">{note}</p>
+        ) : null}
+      </div>
       {children}
     </div>
   )
@@ -24,9 +41,7 @@ export function Card({
 
 export function Toolbar({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("toolbar mb-2.5 flex flex-wrap items-center gap-2", className)}>
-      {children}
-    </div>
+    <div className={cn("toolbar mb-4 flex flex-wrap items-center gap-2", className)}>{children}</div>
   )
 }
 
@@ -35,8 +50,14 @@ export function Spacer() {
 }
 
 export function Hint({ children }: { children: ReactNode }) {
-  return <span className="text-[11.5px] text-muted">{children}</span>
+  return <span className="text-[12px] leading-[1.5] text-fog">{children}</span>
 }
+
+const PILL_BASE = "pill cursor-pointer whitespace-nowrap px-4 py-2 text-[13px]"
+/** 채운 pill — 화면에 하나둘만 둔다. 많아지면 무게를 잃는다 */
+export const btnFilled = cn(PILL_BASE, "bg-graphite font-semibold text-paper hover:bg-[#2c2a2a]")
+/** 고스트 pill — 헤어라인 테두리, 채움 없음 */
+export const btnGhost = cn(PILL_BASE, "border border-graphite/25 bg-transparent hover:bg-cream")
 
 /** 월 탭 — 앞에 '전체' 버튼이 붙는다 ("" = 전체월) */
 export function MonthTabs() {
@@ -47,24 +68,24 @@ export function MonthTabs() {
       type="button"
       onClick={() => setMon(m)}
       className={cn(
-        "rounded border px-3.5 py-1 text-xs",
+        "pill cursor-pointer px-4 py-2 text-[13px]",
         mon === m
-          ? "border-hdr bg-hdr font-bold text-white"
-          : "border-line bg-surface text-ink2 hover:bg-[#f0f2f5]",
+          ? "bg-graphite font-semibold text-paper"
+          : "border border-graphite/15 bg-paper hover:bg-cream",
       )}
     >
       {label}
     </button>
   )
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1.5">
       {btn("", "전체")}
       {months.map((m) => btn(m, MONLBL(m)))}
     </div>
   )
 }
 
-const CONTROL = "max-w-[190px] rounded border border-line bg-surface px-1.5 py-1 text-xs text-ink"
+const CONTROL = "pill max-w-[210px] border border-graphite/20 bg-paper px-4 py-2 text-[13px]"
 
 /** 필터 드롭다운 — 값은 filt[fkey] 에 저장된다 */
 export function FilterSelect({
@@ -79,9 +100,10 @@ export function FilterSelect({
   display?: (v: string) => string
 }) {
   const { filt, setFilt } = useView()
+  const on = !!filt[fkey]
   return (
     <select
-      className={CONTROL}
+      className={cn(CONTROL, "cursor-pointer", on && "border-graphite/60 font-semibold")}
       value={filt[fkey] ?? ""}
       onChange={(e) => setFilt(fkey, e.target.value)}
     >
@@ -159,25 +181,29 @@ export function MultiFilterSelect({
         type="button"
         onClick={() => setOpen((v) => !v)}
         title={sel.size ? [...sel].map(show).join(", ") : `${label} — 여러 개 고를 수 있습니다`}
-        className={cn(CONTROL, "flex items-center gap-1", sel.size ? "font-bold text-hdr" : "")}
+        className={cn(
+          CONTROL,
+          "flex cursor-pointer items-center gap-2",
+          sel.size && "border-graphite/60 font-semibold",
+        )}
       >
         <span className="truncate">{lab}</span>
-        <span className="text-[9px] leading-none text-muted">▼</span>
+        <span className="text-[8px] leading-none text-fog">▼</span>
       </button>
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+2px)] z-30 max-h-64 min-w-[160px] overflow-auto rounded border border-line bg-surface p-1 shadow-lg">
+        <div className="absolute left-0 top-[calc(100%+6px)] z-30 max-h-72 min-w-[180px] overflow-auto rounded-[12px] bg-paper p-2 shadow-soft ring-1 ring-graphite/10">
           <button
             type="button"
             onClick={() => setFilt(fkey, "")}
             disabled={!sel.size}
-            className="mb-1 w-full rounded px-1.5 py-0.5 text-left text-[11px] text-muted enabled:hover:bg-[#f0f2f5] disabled:opacity-40"
+            className="pill mb-1 w-full cursor-pointer px-3 py-1.5 text-left text-[12px] text-fog enabled:hover:bg-cream disabled:opacity-40"
           >
             {sel.size ? `선택 해제 (${sel.size}개)` : "전체"}
           </button>
           {values.map((v) => (
             <label
               key={v}
-              className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded px-1.5 py-0.5 text-xs hover:bg-[#f0f2f5]"
+              className="pill flex cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-1.5 text-[13px] hover:bg-cream"
             >
               <input type="checkbox" checked={sel.has(v)} onChange={() => toggle(v)} />
               <span>{show(v)}</span>
@@ -194,26 +220,20 @@ export interface Kpi {
   v: ReactNode
   u?: string
   s: ReactNode
-  state?: "ok" | "bad"
 }
 
+/** KPI — 세리프가 감정 노동을 하는 자리. 숫자만 40px 디스플레이로 올린다. */
 export function KpiCards({ items }: { items: Kpi[] }) {
   return (
-    <div className="mb-3 grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-2.5">
+    <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
       {items.map((it) => (
-        <div key={it.k} className="rounded-md border border-line bg-surface px-3.5 py-3">
-          <div className="text-[11.5px] text-ink2">{it.k}</div>
-          <div
-            className={cn(
-              "mt-0.5 text-[23px] font-bold tracking-[-0.5px]",
-              it.state === "ok" && "text-gain",
-              it.state === "bad" && "text-danger",
-            )}
-          >
+        <div key={it.k} className="rounded-[12px] bg-paper px-6 py-5 shadow-soft">
+          <div className="text-[11px] tracking-[0.08em] text-fog uppercase">{it.k}</div>
+          <div className="display mt-2 text-[40px]">
             {it.v}
-            {it.u ? <span className="ml-0.5 text-xs font-normal text-ink2">{it.u}</span> : null}
+            {it.u ? <span className="ml-1 font-sans text-[14px] text-fog">{it.u}</span> : null}
           </div>
-          <div className="mt-0.5 text-[11px] text-muted">{it.s}</div>
+          <div className="mt-1.5 text-[12px] leading-[1.5] text-fog">{it.s}</div>
         </div>
       ))}
     </div>
@@ -225,7 +245,7 @@ export function CountryCell({ ctry, kor }: { ctry: string; kor?: string }) {
   return (
     <>
       {ctry}
-      {kor && kor !== ctry ? <span className="ml-1 text-[11.5px] text-muted">{kor}</span> : null}
+      {kor && kor !== ctry ? <span className="ml-1.5 text-[11px] text-fog">{kor}</span> : null}
     </>
   )
 }

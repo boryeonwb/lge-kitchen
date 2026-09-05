@@ -48,7 +48,7 @@ const BASE_COLS: Col<OpsRow>[] = [
     l: "솔루션",
     w: 92,
     // 품의 초과집행 행은 솔루션 칸에 표시를 남긴다
-    fmt: (v, r) => (r.over ? <b className="text-danger">{v} ⚠</b> : v),
+    fmt: (v, r) => (r.over ? <b className="font-semibold">{v} ⚠</b> : v),
     csv: (v) => v,
   },
   {
@@ -84,7 +84,7 @@ const BASE_COLS: Col<OpsRow>[] = [
     l: "품의환율",
     w: 80,
     cls: "text-right",
-    fmt: (v) => (v ? f2(v) : <span className="text-[11px] text-warn-ink">미입력</span>),
+    fmt: (v) => (v ? f2(v) : <span className="text-[11px] text-fog">미입력</span>),
     csv: (v) => (v ? f2(v) : "미입력"),
   },
   {
@@ -98,7 +98,7 @@ const BASE_COLS: Col<OpsRow>[] = [
         ""
       ) : (
         <b
-          className={r.over ? "text-danger" : "text-hdr"}
+          className={r.over ? "tint tint-neg" : "font-semibold"}
           title={`이미 정해진 몫 + 앞으로 태울 몫 = ${f2(v)} ${r.setCur}`}
         >
           {f2(v)}
@@ -113,9 +113,9 @@ const BASE_COLS: Col<OpsRow>[] = [
     cls: "text-right",
     fmt: (v, r) =>
       v === null ? (
-        <span className="text-[11px] text-muted">{r.daysLeft === 0 ? "종료" : ""}</span>
+        <span className="text-[11px] text-fog">{r.daysLeft === 0 ? "종료" : ""}</span>
       ) : (
-        <b className="text-hdr" title={`잔여액 ÷ 환율 ÷ 잔여 ${r.daysLeft}일(오늘~종료일)`}>
+        <b className="font-semibold" title={`잔여액 ÷ 환율 ÷ 잔여 ${r.daysLeft}일(오늘~종료일)`}>
           {f2(v)}
         </b>
       ),
@@ -134,7 +134,7 @@ const BASE_COLS: Col<OpsRow>[] = [
       const stuck = v > 0 && r.daysLeft === 0
       return (
         <b
-          className={v < 0 ? "text-danger" : stuck ? "text-warn-ink" : "text-gain"}
+          className={v < 0 ? "tint tint-neg" : stuck ? "tint tint-warn" : "font-semibold"}
           title={
             "품의예산(KRW) − 확정 소진 − 수기 입력" +
             (stuck ? " · 종료됐는데 남아 있어 이만큼 못 쓰고 끝났습니다" : "")
@@ -209,7 +209,7 @@ function SrcValue({
   if (src === "수기")
     return (
       <span
-        className="font-bold text-fx-ink"
+        className="tint tint-info"
         title={`${mon}월 매체 리포트 기준 집행액 (인보이스 확정 전)`}
       >
         {text}
@@ -217,7 +217,7 @@ function SrcValue({
     )
   return (
     <span
-      className="text-[11.5px] italic text-hdr opacity-70"
+      className="text-[11.5px] italic text-fog"
       title={`${mon}월 계획 — 잔여액을 남은 일수에 일할 배분한 금액입니다(실적 아님)`}
     >
       {text}
@@ -292,8 +292,10 @@ export function OpsView({ D }: { D: OpsPayload }) {
             k: "잔여액",
             v: eok(gLeft),
             u: "억원",
-            s: "아직 어느 달에도 배분되지 않은 금액",
-            state: gLeft < 0 ? "bad" : "ok",
+            s:
+              gLeft < 0
+                ? "품의를 넘겨 집행했습니다"
+                : "아직 어느 달에도 배분되지 않은 금액",
           },
           {
             k: "인보이스 확정",
@@ -316,7 +318,7 @@ export function OpsView({ D }: { D: OpsPayload }) {
         />
         <FilterSelect fkey="opsPhase" label="PHASE" values={phases} />
         <MultiFilterSelect fkey="opsMed" label="매체" values={meds} />
-        <label className="flex items-center gap-1.5 text-[11.5px] text-hdr">
+        <label className="pill flex cursor-pointer items-center gap-2 border border-graphite/15 bg-paper px-4 py-2 text-[13px]">
           <input
             type="checkbox"
             checked={onlyLive}
@@ -327,23 +329,21 @@ export function OpsView({ D }: { D: OpsPayload }) {
         <Spacer />
         <Hint>
           {rows.length}행 · 품의 <b>{f0(gBud)}</b> · 소진 <b>{f0(gSpent)}</b> · 잔여{" "}
-          <b className={cn(gLeft < 0 ? "text-danger" : "text-gain")}>{f0(gLeft)}</b>
+          <b className={cn("font-semibold", gLeft < 0 && "tint tint-neg")}>{f0(gLeft)}</b>
         </Hint>
       </Toolbar>
 
       <Card
-        title={
+        title={`품의예산 대비 잔여금 · 세팅 예산 — 기준일 ${D.today}`}
+        note={
           <>
-            품의예산 대비 잔여금 · 세팅 예산 — 기준일 {D.today}
-            <span className="font-normal text-muted">
-              {" "}
-              · 월별 소진 KRW 는 한 달에 하나입니다 — <b>확정</b>(인보이스,{" "}
-              {D.closedMonth ? `${MONLBL(D.closedMonth)}까지` : "없음"}) &gt;{" "}
-              <span className="text-fx-ink font-bold">수기</span>(매체 리포트 기준) &gt;{" "}
-              <i>계획</i>(잔여액을 남은 일수에 일할 배분 · 실적 아님). 세팅통화 칸도 같은 출처로
-              짝을 맞춥니다 · <b>세팅 일예산</b>은 오늘 매체에 넣을 값, <b>세팅 총예산</b>은 캠페인
-              총예산 칸에 넣을 값(이미 태운 몫 포함)입니다 · 기간은 각 국가 현지 날짜 기준
-            </span>
+            월별 소진 KRW 는 한 달에 하나입니다 — <b className="font-semibold">확정</b>(인보이스,{" "}
+            {D.closedMonth ? `${MONLBL(D.closedMonth)}까지` : "없음"}) &gt;{" "}
+            <span className="tint tint-info text-[11.5px]">수기</span> (매체 리포트 기준) &gt;{" "}
+            <i>계획</i> (잔여액을 남은 일수에 일할 배분 · 실적 아님). 세팅통화 칸도 같은 출처로
+            짝을 맞춥니다 · <b className="font-semibold">세팅 일예산</b>은 오늘 매체에 넣을 값,{" "}
+            <b className="font-semibold">세팅 총예산</b>은 캠페인 총예산 칸에 넣을 값(이미 태운
+            몫 포함)입니다 · 기간은 각 국가 현지 날짜 기준
           </>
         }
       >

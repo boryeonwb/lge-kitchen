@@ -2,6 +2,7 @@ import { DataTable, type Col, type TableRow } from "#/components/DataTable"
 import {
   Card,
   CountryCell,
+  KpiCards,
   FilterSelect,
   Hint,
   MonthTabs,
@@ -36,7 +37,7 @@ const COLS: Col<SettleRow>[] = [
     w: 66,
     cls: "text-center",
     // 캠페인명에 Phase 토큰이 없는 라인(DST·무효반영·총액만 오는 매체)은 공란
-    fmt: (v) => v || <span className="text-[11px] text-muted">—</span>,
+    fmt: (v) => v || <span className="text-[11px] text-fog">—</span>,
     csv: (v) => v || "",
   },
   { k: "med", l: "매체", w: 78 },
@@ -79,7 +80,7 @@ const COLS: Col<SettleRow>[] = [
     w: 80,
     cls: "text-right",
     grp: "tax",
-    fmt: (v) => (v === null || v === undefined ? <span className="text-[11.5px] text-warn-ink">미입력</span> : f2(v)),
+    fmt: (v) => (v === null || v === undefined ? <span className="text-[11px] text-fog">미입력</span> : f2(v)),
     csv: (v) => (v === null || v === undefined ? "미입력" : f2(v)),
   },
   {
@@ -127,9 +128,9 @@ const COLS: Col<SettleRow>[] = [
     grp: "tax",
     fmt: (v) =>
       v ? (
-        <b className="text-[#8a5a00]">{v}월</b>
+        <span className="tint tint-warn text-[11.5px]">{v}월</span>
       ) : (
-        <span className="text-[11.5px] text-muted">미발행</span>
+        <span className="text-[11px] text-fog">미발행</span>
       ),
     csv: (v) => (v ? `${v}월` : "미발행"),
   },
@@ -277,6 +278,28 @@ export function SettlementView({ D }: { D: SettlePayload }) {
 
   return (
     <>
+      <KpiCards
+        items={[
+          {
+            k: `${monLab} 세금계산서 발행 금액`,
+            v: eok(gTax),
+            u: "억원",
+            s: `${f0(gTax)}원`,
+          },
+          {
+            k: "와이즈버즈 수수료",
+            v: eok(gFee),
+            u: "억원",
+            s: `${f0(gFee)}원`,
+          },
+          {
+            k: "세금계산서 발행",
+            v: `${nIssued} / ${rows.length}`,
+            s: "발행월이 지정된 행 / 전체 행",
+          },
+        ]}
+      />
+
       <Toolbar>
         <MonthTabs />
         <FilterSelect fkey="sol" label="솔루션" values={sols} />
@@ -294,28 +317,25 @@ export function SettlementView({ D }: { D: SettlePayload }) {
         <FilterSelect fkey="iss" label="발행월" values={isss} display={ISSLBL} />
         <Spacer />
         <Hint>
-          {monLab} 세금계산서 발행 금액{" "}
-          <b className="text-sm text-danger">{eok(gTax)}억원</b> ({f0(gTax)}원) · 와이즈버즈 수수료{" "}
-          <b>{f0(gFee)}</b>원
+          {rows.length}행
+          {vSol ? ` · ${vSol}` : ""}
+          {medSel.size ? ` · ${[...medSel].join("+")}` : ""}
+          {vCtry ? ` · ${vCtry}` : ""}
+          {vPh ? ` · ${vPh}` : ""}
+          {vIss ? ` · ${ISSLBL(vIss)} 발행` : ""}
         </Hint>
       </Toolbar>
 
       <Card
-        title={
+        title={`정산 · ${monLab}`}
+        note={
           <>
-            정산 · {monLab} — {rows.length}행
-            {vSol ? ` · ${vSol}` : ""}
-            {medSel.size ? ` · ${[...medSel].join("+")}` : ""}
-            {vCtry ? ` · ${vCtry}` : ""}
-            {vPh ? ` · ${vPh}` : ""}
-            {vIss ? ` · ${ISSLBL(vIss)} 발행` : ""}
-            <span className="font-normal text-muted">
-              {" "}
-              · 발행 완료 {nIssued}행 / {rows.length}행 · <b>광고비net</b> = 집행 + DST안분 +
-              무효반영 · <b>최종 발행 금액</b> = 매체비KRW + 수수료KRW, 단 처리주체가{" "}
-              <b>HSAD(광고주계정)</b>인 행은 매체비를 광고주가 매체에 직접 지불하므로 수수료만
-              발행합니다(매체비 칸을 회색으로 표시)
-            </span>
+            <b className="font-semibold">광고비net</b> = 집행 + DST안분 + 무효반영 ·{" "}
+            <b className="font-semibold">최종 발행 금액</b> = 매체비KRW + 수수료KRW. 단 처리주체가{" "}
+            <b className="font-semibold">HSAD(광고주계정)</b>인 행은 매체비를 광고주가 매체에 직접
+            지불하므로 수수료만 발행합니다 — 그 행의 매체비 칸은 흐리게 내려둡니다 ·{" "}
+            <b className="font-semibold">인보이스 최종금액</b>은 그 라인이 속한 인보이스의 발행 총액이라
+            집계행마다 되풀이됩니다 — 합계를 내지 않습니다
           </>
         }
       >

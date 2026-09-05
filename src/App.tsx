@@ -5,6 +5,7 @@ import type { OpsPayload, SettlePayload } from "#/lib/api"
 import { ViewContext, type SortState, type ViewCtx } from "#/lib/view"
 import { MONLBL } from "#/lib/format"
 import { cn } from "#/lib/utils"
+import { Spacer, btnFilled, btnGhost } from "#/components/ui"
 import { OpsView } from "#/views/OpsView"
 import { SettlementView } from "#/views/SettlementView"
 
@@ -151,75 +152,75 @@ export function App() {
 
   return (
     <div>
-      <header className="sticky top-0 z-[60] flex flex-wrap items-center gap-3.5 bg-hdr px-4 py-2.5 text-white shadow-[0_1px_6px_rgba(0,0,0,.25)]">
-        <h1 className="m-0 text-[15px] font-bold tracking-[-0.2px]">
-          LG전자 냉장고 운영·정산 대시보드
-        </h1>
-        <span className="text-xs opacity-85">
-          {S ? `정산 갱신 ${S.generatedAt}` : ""}
-          {O?.mix.fetchedAt ? ` · 품의예산 시트 ${O.mix.fetchedAt}` : ""}
-        </span>
-        <span className="flex-1" />
-        <button
-          type="button"
-          onClick={exportCsv}
-          className="cursor-pointer rounded border border-[rgba(255,255,255,.45)] bg-transparent px-3 py-1.5 text-xs text-white hover:bg-[rgba(255,255,255,.14)]"
-        >
-          CSV 내보내기
-        </button>
-        <button
-          type="button"
-          disabled={!!busy}
-          onClick={() => void load()}
-          className="cursor-pointer rounded border border-white bg-white px-3 py-1.5 text-xs font-bold text-hdr hover:bg-[#eef2f8] disabled:opacity-50"
-        >
-          🔄 새로고침
-        </button>
+      {/* 상단 바 하나로 끝낸다 — 로고 왼쪽, 탭 가운데, pill 액션 오른쪽.
+          크림 캔버스 위 헤어라인 하나로 떠 있고, 진한 바를 두지 않는다. */}
+      <header className="sticky top-0 z-[60] border-b border-graphite/10 bg-cream/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1720px] flex-wrap items-center gap-x-8 gap-y-3 px-8 py-4">
+          <h1 className="display m-0 text-[22px]">LG전자 냉장고 운영·정산 대시보드</h1>
+
+          <nav className="flex gap-7">
+            {TABS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setTab(id)
+                  syncHash(id, curMon)
+                  window.scrollTo({ top: 0 })
+                }}
+                className={cn(
+                  "relative cursor-pointer bg-transparent pb-1 text-[15px]",
+                  tab === id
+                    ? "font-semibold after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-graphite after:content-['']"
+                    : "text-fog hover:text-graphite",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          <Spacer />
+
+          <span className="text-[12px] text-fog">
+            {S ? `정산 갱신 ${S.generatedAt}` : ""}
+            {O?.mix.fetchedAt ? ` · 품의예산 시트 ${O.mix.fetchedAt}` : ""}
+          </span>
+          <button type="button" onClick={exportCsv} className={btnGhost}>
+            CSV 내보내기
+          </button>
+          <button
+            type="button"
+            disabled={!!busy}
+            onClick={() => void load()}
+            className={cn(btnFilled, "disabled:opacity-50")}
+          >
+            새로고침
+          </button>
+        </div>
       </header>
 
-      {err ? (
-        <div className="border-b border-warn-line bg-warn-bg px-4 py-2 text-xs text-warn-ink">
-          <b>불러오지 못한 자료가 있습니다</b> — {err}
-        </div>
-      ) : null}
+      <main className="mx-auto max-w-[1720px] px-8 pb-20 pt-7">
+        {err ? (
+          <div className="mb-5 rounded-[12px] bg-amber px-6 py-4 text-[13px] leading-[1.5]">
+            <b className="font-semibold">불러오지 못한 자료가 있습니다</b> — {err}
+          </div>
+        ) : null}
 
-      <nav className="sticky top-0 z-50 flex gap-0.5 overflow-x-auto border-b border-line bg-surface px-3">
-        {TABS.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              setTab(id)
-              syncHash(id, curMon)
-              window.scrollTo({ top: 0 })
-            }}
-            className={cn(
-              "cursor-pointer whitespace-nowrap border-b-[3px] bg-transparent px-6 py-2.5 text-[13px]",
-              tab === id
-                ? "border-hdr font-bold text-hdr"
-                : "border-transparent text-ink2 hover:bg-[#f0f2f5]",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      <main className="px-4 pb-16 pt-3.5">
         {ready ? (
           <ViewContext.Provider value={ctx}>
             {tab === "ops" ? <OpsView D={O!} /> : <SettlementView D={S!} />}
           </ViewContext.Provider>
         ) : busy ? null : (
-          <div className="rounded-md border border-line bg-surface px-4 py-6 text-[12.5px] text-muted">
+          <div className="rounded-[12px] bg-paper px-6 py-10 text-center text-[13px] text-fog shadow-soft">
             표시할 자료가 없습니다. [새로고침]을 눌러 다시 시도해 주세요.
           </div>
         )}
       </main>
 
       {busy ? (
-        <div className="fixed inset-0 z-90 flex items-center justify-center bg-[rgba(244,245,247,.72)] text-sm font-bold text-hdr">
-          <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-[2.5px] border-[rgba(48,84,150,.25)] border-t-hdr" />
+        <div className="fixed inset-0 z-90 flex items-center justify-center bg-cream/75 text-[14px]">
+          <span className="mr-2.5 inline-block h-4 w-4 animate-spin rounded-full border-2 border-graphite/20 border-t-graphite" />
           {busy}
         </div>
       ) : null}

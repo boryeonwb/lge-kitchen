@@ -194,7 +194,7 @@ export function DataTable({ cols, rows, sortKey, nosort, freeze, grouped }: Prop
                     <th
                       key={`g${i}`}
                       colSpan={s.span}
-                      className={cn("grouphead", g?.head, !g && "bg-hdr")}
+                      className={cn("grouphead", g?.head, !g && "bg-graphite")}
                     >
                       {g?.l ?? ""}
                     </th>

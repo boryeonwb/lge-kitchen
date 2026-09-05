@@ -1,27 +1,54 @@
 @import "tailwindcss";
 
-/* 내부 정산 대시보드와 같은 색 체계 — 두 화면을 나란히 놓고 대조하는 일이 많다. */
+/**
+ * Popcorn — warm editorial monochrome.
+ *
+ * 크림색 종이 위의 따뜻한 그래파이트. 색은 거의 쓰지 않고 서체 대비·자간·
+ * 부드러운 그림자 하나로 위계를 만든다. 인터랙티브 요소는 전부 pill(100px).
+ *
+ * 표가 빽빽한 화면이라 원본(마케팅 랜딩)에서 두 가지를 다르게 해석했다.
+ *  1) 디스플레이 세리프는 페이지 제목·섹션 제목·KPI 숫자에만 쓰고, 표 안 글자는
+ *     사스 스케일의 기능 사이즈(11·13·14px)로 내린다. 표에 16px 본문을 쓰면
+ *     한 화면에 여덟 줄밖에 못 담아 대조가 안 된다.
+ *  2) 초과·미발행 같은 신호를 '채도 있는 글자색' 대신 **연한 틴트 pill** 로 낸다.
+ *     시스템이 채도 있는 텍스트를 금지하므로, 스펙트럼 워시의 blush·amber·sage 를
+ *     아주 옅게 깐 배지로 옮겼다.
+ */
 @theme {
-  --font-sans: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  /* ── Colors */
+  --color-graphite: #393737;
+  --color-cream: #f7f7f7;
+  --color-paper: #ffffff;
+  --color-fog: #888787;
+  --color-mist: #e9eff6;
+  --color-lilac: #f3f0f8;
 
-  --color-hdr: #305496;
-  --color-hdr-deep: #26456f;
+  /* 스펙트럼 워시에서 뽑은 신호용 틴트 — 배경으로만 쓴다 */
+  --color-blush: #f7dbe5;
+  --color-amber: #fef1d8;
+  --color-sage: #e7f3e0;
 
-  --color-tot: #fff2cc;
-  --color-danger: #c00000;
-  --color-gain: #006300;
+  /* ── Typography
+     Untitled Serif → Source Serif 4 (+ 한글 Noto Serif KR)
+     Messina Sans   → Inter (+ 한글은 시스템 고딕) */
+  --font-display: "Source Serif 4", "Noto Serif KR", ui-serif, Georgia, Cambria, "Times New Roman",
+    serif;
+  --font-sans: "Inter", "Pretendard", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    "Malgun Gothic", sans-serif;
 
-  --color-surface: #ffffff;
-  --color-plane: #f4f5f7;
-  --color-line: #d9d9d9;
-  --color-ink: #1b1b1b;
-  --color-ink2: #55565a;
-  --color-muted: #8a8b90;
+  --text-caption: 11px;
+  --text-body: 16px;
+  --text-subheading: 18px;
+  --text-heading-sm: 22px;
+  --text-heading: 30px;
+  --text-heading-lg: 40px;
 
-  --color-warn-bg: #fff4e5;
-  --color-warn-line: #f0c99a;
-  --color-warn-ink: #a04b00;
-  --color-fx-ink: #7a5a10;
+  /* ── Elevation — 시스템에 존재하는 유일한 그림자 */
+  --shadow-soft: rgba(0, 0, 0, 0.05) 0px 4px 20px 0px;
+
+  /* ── Radius */
+  --radius-card: 12px;
+  --radius-pill: 100px;
 }
 
 * {
@@ -36,127 +63,170 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-plane);
-  color: var(--color-ink);
+  background: var(--color-cream);
+  color: var(--color-graphite);
   font-family: var(--font-sans);
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── 표: 엑셀 룩 (sticky 헤더 + 왼쪽 열 고정) ─────────────────────────────
-   Tailwind 유틸로는 표현이 어려운 sticky 좌표/구분선만 여기에 둔다. */
+/* 에디토리얼 세리프 — 20px 미만으로 내려가지 않는다. 그 아래는 무게를 잃는다. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+/* ── 신호 틴트 — 채도 있는 글자색 대신 옅은 배지로 낸다 */
+.tint {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  padding: 1px 8px;
+  font-weight: 600;
+}
+/* 숫자 열에서는 배지의 오른쪽 여백만큼 당겨 낸다 — 그러지 않으면 배지가 붙은 행만
+   숫자 오른쪽 끝이 8px 안으로 들어가 같은 열의 다른 숫자와 자릿수가 어긋난다. */
+.tbl td.text-right .tint { margin-right: -8px; }
+.tint-neg { background: var(--color-blush); }
+.tint-warn { background: var(--color-amber); }
+.tint-ok { background: var(--color-sage); }
+.tint-info { background: var(--color-mist); }
+
+/* ── 표 — 크림 종이 위에 놓인 페이퍼 화이트 판.
+   Tailwind 유틸로는 어려운 sticky 좌표·고정열 경계만 여기 둔다. */
 .tbl {
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  background: var(--color-surface);
+  background: var(--color-paper);
+  font-variant-numeric: tabular-nums;
 }
 
 .tbl thead th {
   position: sticky;
   top: 0;
   z-index: 3;
-  background: var(--color-hdr);
-  color: #fff;
-  font-size: 11.5px;
-  font-weight: 700;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   text-align: center;
-  padding: 7px 6px;
-  border-right: 1px solid rgba(255, 255, 255, 0.22);
-  border-bottom: 1px solid var(--color-hdr);
+  padding: 9px 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
   white-space: pre-line;
   user-select: none;
 }
 
-/* 열 묶음 헤더 — 헤더가 2줄이라 sticky 좌표를 나눠 준다.
-   1줄: 묶음 라벨(top 0) / 2줄: 열 이름(묶음 행 높이만큼 내려서 고정)
-   묶음이 없는 표(.nogroup)는 헤더가 한 줄이라 그대로 top 0 이다. */
+/* 열 묶음 헤더 — 헤더가 두 줄이라 sticky 좌표를 나눠 준다.
+   묶음이 없는 표(.nogroup)는 한 줄이라 그대로 top 0 이다. */
 .tbl thead tr.grouprow th {
   top: 0;
   z-index: 6;
-  height: 24px;
-  padding: 4px 6px;
-  font-size: 11px;
-  letter-spacing: 0.3px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  height: 26px;
+  padding: 5px 8px;
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
 }
 .tbl:not(.nogroup) thead tr:not(.grouprow) th {
-  top: 24px;
+  top: 26px;
   z-index: 4;
 }
-.tbl thead th.gh-inv { background: #2f5d8a; }
-.tbl thead th.gh-tax { background: #8a6a1f; }
+/* 두 묶음은 같은 따뜻한 뉴트럴 계열 안에서만 갈린다 — 실제 구분은 아래 셀 틴트가 한다 */
+.tbl thead th.gh-inv { background: #434749; }
+.tbl thead th.gh-tax { background: #4a4239; }
 
 .tbl td {
-  padding: 4px 6px;
-  border-right: 1px solid var(--color-line);
-  border-bottom: 1px solid var(--color-line);
-  font-variant-numeric: tabular-nums;
+  padding: 7px 8px;
+  border-bottom: 1px solid rgba(57, 55, 55, 0.07);
   white-space: nowrap;
 }
 
-.tbl tbody tr:nth-child(even) td { background: #fbfcfd; }
-.tbl tbody tr:hover td { background: #eef4fc; }
+.tbl tbody tr:hover td { background: var(--color-cream); }
 
-/* 열 묶음 배경 — 인보이스에서 읽은 값과 세금계산서로 나가는 값을 색으로 가른다.
-   지브라·hover 보다 뒤에 두고 상태별로 명시해야 덮이지 않는다. */
-.tbl tbody tr td.g-inv                  { background: #f2f7fc; }
-.tbl tbody tr:nth-child(even) td.g-inv  { background: #eaf1f9; }
-.tbl tbody tr:hover td.g-inv            { background: #dfeaf6; }
-.tbl tbody tr td.g-tax                  { background: #fffaea; }
-.tbl tbody tr:nth-child(even) td.g-tax  { background: #fdf5df; }
-.tbl tbody tr:hover td.g-tax            { background: #fbeec6; }
+/* 열 묶음 배경 — 인보이스에서 읽은 값(쿨 톤)과 세금계산서로 나가는 값(웜 톤)을
+   아주 옅게 가른다. hover 보다 뒤에 두고 상태별로 명시해야 덮이지 않는다. */
+.tbl tbody tr td.g-inv       { background: #f4f7fa; }
+.tbl tbody tr:hover td.g-inv { background: #eaf0f6; }
+.tbl tbody tr td.g-tax       { background: #fdfaf4; }
+.tbl tbody tr:hover td.g-tax { background: #faf4e9; }
 
-/* 청구하지 않는 매체비(광고주계정) — 수수료 산정 기준일 뿐이라 회색으로 죽여 둔다.
-   g-tax 배경보다 뒤에 와야 덮인다. */
+/* 청구하지 않는 매체비(광고주계정) — 수수료 산정 기준일 뿐이라 죽여 둔다 */
 .tbl tbody tr td.g-tax.notbilled,
-.tbl tbody tr:nth-child(even) td.g-tax.notbilled { background: #eceef1; color: var(--color-muted); }
-.tbl tbody tr:hover td.g-tax.notbilled           { background: #e2e5e9; }
-
-.tbl tr.sub td {
-  background: var(--color-tot) !important;
-  font-weight: 700;
+.tbl tbody tr:hover td.g-tax.notbilled {
+  background: var(--color-cream);
+  color: var(--color-fog);
 }
 
+/* 소계 — 크림 밴드. 총계 — 그래파이트 헤어라인 위의 굵은 줄 */
+.tbl tr.sub td {
+  background: var(--color-cream) !important;
+  font-weight: 600;
+}
 .tbl tr.grand td {
-  background: #fff !important;
+  background: var(--color-paper) !important;
   font-weight: 700;
-  color: var(--color-danger);
-  border-top: 2px solid var(--color-danger);
+  border-top: 2px solid var(--color-graphite);
+  border-bottom: none;
 }
 
 /* 왼쪽 열 고정 — left 값은 렌더 후 실측해서 인라인으로 채운다.
-   세로(헤더)·가로(왼쪽) 고정이 겹치는 칸은 z-index 를 더 높여야 일반 셀 위로 올라온다. */
+   세로(헤더)·가로(왼쪽) 고정이 겹치는 칸은 z-index 를 더 높여야 위로 올라온다. */
 .tbl th.fz { position: sticky; z-index: 5; }
 .tbl thead tr.grouprow th.fz { z-index: 8; }
 .tbl thead tr:not(.grouprow) th.fz { z-index: 7; }
-.tbl td.fz { position: sticky; z-index: 2; background: var(--color-surface); }
-.tbl th.fz-last { border-right: 2px solid #1f3a63; }
-.tbl td.fz-last { border-right: 2px solid #9aa3ad; }
+.tbl td.fz { position: sticky; z-index: 2; background: var(--color-paper); }
+.tbl tbody tr:hover td.fz { background: var(--color-cream); }
+.tbl tr.sub td.fz { background: var(--color-cream) !important; }
+.tbl th.fz-last { border-right: 1px solid rgba(255, 255, 255, 0.32); }
+.tbl td.fz-last { border-right: 1px solid rgba(57, 55, 55, 0.16); }
 
 /* 세로 스크롤 영역: 가로 스크롤바는 표 위(.hstop)에만 노출 */
-.scroll { overflow: auto; max-height: calc(100vh - 250px); }
-.scroll::-webkit-scrollbar { width: 12px; height: 0; }
-.scroll::-webkit-scrollbar-track { background: #f1f2f4; }
+.scroll { overflow: auto; max-height: calc(100vh - 268px); }
+.scroll::-webkit-scrollbar { width: 10px; height: 0; }
+.scroll::-webkit-scrollbar-track { background: var(--color-cream); }
 .scroll::-webkit-scrollbar-thumb {
-  background: #c2c4c9;
-  border-radius: 6px;
-  border: 3px solid #f1f2f4;
+  background: #d5d3d3;
+  border-radius: var(--radius-pill);
+  border: 3px solid var(--color-cream);
 }
 
 .hstop {
   overflow-x: auto;
   overflow-y: hidden;
   height: 14px;
-  background: #f1f2f4;
-  border-bottom: 1px solid var(--color-line);
+  background: var(--color-cream);
+  border-bottom: 1px solid rgba(57, 55, 55, 0.07);
 }
-.hstop::-webkit-scrollbar { height: 11px; }
-.hstop::-webkit-scrollbar-track { background: #f1f2f4; }
+.hstop::-webkit-scrollbar { height: 10px; }
+.hstop::-webkit-scrollbar-track { background: var(--color-cream); }
 .hstop::-webkit-scrollbar-thumb {
-  background: #b6b9c0;
-  border-radius: 6px;
-  border: 2px solid #f1f2f4;
+  background: #cfcdcd;
+  border-radius: var(--radius-pill);
+  border: 3px solid var(--color-cream);
+}
+
+/* pill 컨트롤 — 버튼·배지·드롭다운은 전부 100px 이다 */
+.pill {
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  line-height: 1;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+/* 셀렉트의 기본 화살표를 지우고 자체 화살표를 얹는다 (pill 안에서 정렬이 맞게) */
+select.pill {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-fog) 50%),
+    linear-gradient(135deg, var(--color-fog) 50%, transparent 50%);
+  background-position: right 15px center, right 10px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 30px;
 }
 
 @media print {
