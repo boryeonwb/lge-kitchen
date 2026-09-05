@@ -84,6 +84,10 @@ export interface OpsRow {
   setCur: string
   /** 아직 어느 달에도 배분되지 않은 돈 = 품의 − 확정 − 수기 */
   leftKrw: number | null
+  /** 세팅 통화 환산 환율 (광고주계정은 HSAD 내부환율, 그 외는 SMBS 기간평균) */
+  setRate: number | null
+  /** 이미 정해진 원통화 (확정 + 수기) — 세팅 총예산의 앞부분 */
+  natDone: number
 
   /** 월(1~12) → 그 달에 실제로 쓰는 KRW · 그 출처 · 같은 출처의 세팅통화 금액 */
   monKrw: Record<string, number>
