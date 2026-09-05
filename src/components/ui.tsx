@@ -229,9 +229,20 @@ export function KpiCards({ items }: { items: Kpi[] }) {
       {items.map((it) => (
         <div key={it.k} className="rounded-[12px] bg-paper px-6 py-5 shadow-soft">
           <div className="text-[11px] tracking-[0.08em] text-fog uppercase">{it.k}</div>
-          <div className="display mt-2 text-[40px]">
+          {/* 정확한 원 단위 금액은 열 자리를 넘어간다 — 길이에 따라 크기를 내려
+              카드 밖으로 넘치거나 줄바꿈되지 않게 한다 */}
+          <div
+            className={cn(
+              "display mt-2 tabular-nums",
+              String(it.v).length > 12
+                ? "text-[24px]"
+                : String(it.v).length > 8
+                  ? "text-[30px]"
+                  : "text-[40px]",
+            )}
+          >
             {it.v}
-            {it.u ? <span className="ml-1 font-sans text-[14px] text-fog">{it.u}</span> : null}
+            {it.u ? <span className="ml-1 font-sans text-[13px] text-fog">{it.u}</span> : null}
           </div>
           <div className="mt-1.5 text-[12px] leading-[1.5] text-fog">{it.s}</div>
         </div>
