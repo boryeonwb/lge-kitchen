@@ -236,9 +236,17 @@ export function SettlementView({ D }: { D: SettlePayload }) {
   const { mon, filt } = useView()
   const monLab = mon ? MONLBL(mon) : "전체월"
 
-  // 드롭다운은 연쇄 구조 — 월 → 솔루션 → 매체 → 국가 → Phase → 발행월 순으로
+  // 드롭다운은 연쇄 구조 — 월 → **발행월** → 솔루션 → 매체 → 국가 → Phase 순으로
   // 실제 존재하는 값만 남긴다. 앞 선택이 바뀌면 뒤 후보도 같이 줄어든다.
-  const pool = D.rows.filter((r) => !mon || r.mon === mon)
+  //
+  // 발행월을 맨 앞에 두는 이유: "8월에 발행한 건이 무엇인가" 로 화면을 좁히는 일이
+  // 잦은데, 뒤에 있으면 솔루션·매체 드롭다운에 그 달과 무관한 값까지 남아 고르는
+  // 족족 빈 표가 나온다. 발행월 후보는 그 달 전체에서 뽑으므로 스스로는 안 좁아진다.
+  const base = D.rows.filter((r) => !mon || r.mon === mon)
+
+  const isss = issValues(base.map((r) => r.issuedMonth))
+  const vIss = isss.includes(filt.iss) ? filt.iss : ""
+  const pool = base.filter((r) => issMatch(vIss, r.issuedMonth))
 
   const sols = [...new Set(pool.map((r) => r.sol))].sort(
     (a, b) => pool.find((r) => r.sol === a)!.solOrd - pool.find((r) => r.sol === b)!.solOrd,
@@ -261,13 +269,9 @@ export function SettlementView({ D }: { D: SettlePayload }) {
       ppool.find((r) => r.phase === a)!.phaseOrd - ppool.find((r) => r.phase === b)!.phaseOrd,
   )
   const vPh = phases.includes(filt.phase) ? filt.phase : ""
-  const ipool = ppool.filter((r) => !vPh || r.phase === vPh)
 
-  const isss = issValues(ipool.map((r) => r.issuedMonth))
-  const vIss = isss.includes(filt.iss) ? filt.iss : ""
-
-  const rows = ipool
-    .filter((r) => issMatch(vIss, r.issuedMonth))
+  const rows = ppool
+    .filter((r) => !vPh || r.phase === vPh)
     .sort(
       (a, b) =>
         a.solOrd - b.solOrd ||
@@ -333,6 +337,7 @@ export function SettlementView({ D }: { D: SettlePayload }) {
 
       <Toolbar>
         <MonthTabs />
+        <FilterSelect fkey="iss" label="발행월" values={isss} display={ISSLBL} />
         <FilterSelect fkey="sol" label="솔루션" values={sols} />
         <MultiFilterSelect fkey="med" label="매체" values={meds} />
         <FilterSelect
@@ -345,7 +350,6 @@ export function SettlementView({ D }: { D: SettlePayload }) {
           }}
         />
         <FilterSelect fkey="phase" label="Phase" values={phases} display={(v) => v || "(구분없음)"} />
-        <FilterSelect fkey="iss" label="발행월" values={isss} display={ISSLBL} />
         <Spacer />
         <Hint>
           {rows.length}행

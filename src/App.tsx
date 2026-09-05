@@ -64,9 +64,9 @@ export function App() {
   // 월 선택 기본값은 마지막 달 — 주소창에 월이 실려 있으면 그 값을 존중한다.
   // 빈 문자열("")은 '전체월' 을 고른 상태지 미선택이 아니라 null 과 구분해서 다룬다.
   const months = S?.months ?? []
-  const curMon = mon !== null && (mon === "" || months.includes(mon))
-    ? mon
-    : (months[months.length - 1] ?? "")
+  // 기본은 **전체월**(지시). 마지막 달을 기본으로 잡으면 다른 달을 보려고 매번
+  // 탭을 눌러야 하고, 정산은 여러 달을 같이 훑는 일이 더 잦다.
+  const curMon = mon !== null && (mon === "" || months.includes(mon)) ? mon : ""
 
   const syncHash = useCallback((t: string, m: string) => {
     history.replaceState(null, "", `#${t}${t === "settle" && m ? `/${m}` : ""}`)
