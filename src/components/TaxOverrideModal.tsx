@@ -69,6 +69,7 @@ export function TaxOverrideModal({
   const field = "w-full rounded-[10px] border border-graphite/25 bg-paper px-3 py-2 text-[13px]"
   const label = "mb-1 block text-[11px] tracking-[0.06em] text-fog uppercase"
   const hist = ov ? [ov, ...ov.history] : []
+  const srv = row.srvOv ? [row.srvOv, ...row.srvOv.history] : []
 
   return (
     <div
@@ -148,10 +149,32 @@ export function TaxOverrideModal({
             </span>
           </div>
 
+          {srv.length ? (
+            <details open className="mb-3 rounded-[10px] border border-graphite/12 bg-cream">
+              <summary className="cursor-pointer px-3 py-2 text-[12px] font-semibold">
+                내부 대시보드 수정 이력 {srv.length}건
+                <span className="font-normal text-fog"> · 공유되는 기록이며 위 자동값에 이미 반영돼 있습니다</span>
+              </summary>
+              <div className="px-3 pb-3">
+                {srv.map((h, i) => (
+                  <div key={i} className="border-t border-graphite/10 py-2 text-[11.5px] text-fog">
+                    <b className="font-semibold text-graphite">
+                      {h.media !== null ? `매체비 ${f0(h.media)}` : ""}
+                      {h.media !== null && h.fee !== null ? " · " : ""}
+                      {h.fee !== null ? `수수료 ${f0(h.fee)}` : ""}
+                    </b>
+                    <br />
+                    {h.by} · {h.reason} · {h.at}
+                  </div>
+                ))}
+              </div>
+            </details>
+          ) : null}
+
           {hist.length ? (
             <details className="mb-4 rounded-[10px] border border-graphite/12">
               <summary className="cursor-pointer px-3 py-2 text-[12px] font-semibold">
-                수정 이력 {hist.length}건
+                이 화면에서 고친 이력 {hist.length}건
               </summary>
               <div className="px-3 pb-3">
                 {hist.map((h, i) => (

@@ -102,18 +102,21 @@ const COLS: Col<SettleRowX>[] = [
     w: 122,
     cls: "text-right editable",
     grp: "tax",
-    cellCls: (r) => [notBilled(r), r.ov?.media != null ? "edited" : ""].filter(Boolean).join(" "),
+    cellCls: (r) =>
+      [notBilled(r), r.ov?.media != null || r.srvOv?.media != null ? "edited" : ""]
+        .filter(Boolean)
+        .join(" "),
     fmt: (v, r) => (
       <span
         title={
-          r.ov
-            ? ovTitle(r.ov)
+          r.ov || r.srvOv
+            ? ovTitle(r.srvOv, r.ov)
             : r.owner === "HSAD"
               ? "광고주계정 — 매체비는 광고주가 매체에 직접 지불합니다. 수수료 산정 기준일 뿐 발행 금액에 들어가지 않습니다 · 눌러서 수정"
               : "눌러서 수정"
         }
       >
-        {r.ov?.media != null ? "✎ " : ""}
+        {r.ov?.media != null || r.srvOv?.media != null ? "✎ " : ""}
         {f0(v)}
       </span>
     ),
@@ -125,10 +128,10 @@ const COLS: Col<SettleRowX>[] = [
     w: 118,
     cls: "text-right editable",
     grp: "tax",
-    cellCls: (r) => (r.ov?.fee != null ? "edited" : ""),
+    cellCls: (r) => (r.ov?.fee != null || r.srvOv?.fee != null ? "edited" : ""),
     fmt: (v, r) => (
-      <span title={r.ov ? ovTitle(r.ov) : "눌러서 수정"}>
-        {r.ov?.fee != null ? "✎ " : ""}
+      <span title={r.ov || r.srvOv ? ovTitle(r.srvOv, r.ov) : "눌러서 수정"}>
+        {r.ov?.fee != null || r.srvOv?.fee != null ? "✎ " : ""}
         {f0(v)}
       </span>
     ),
@@ -140,12 +143,12 @@ const COLS: Col<SettleRowX>[] = [
     w: 138,
     cls: "text-right editable",
     grp: "tax",
-    cellCls: (r) => (r.ov ? "edited" : ""),
+    cellCls: (r) => (r.ov || r.srvOv ? "edited" : ""),
     fmt: (v, r) => (
       <b
         title={
-          r.ov
-            ? ovTitle(r.ov)
+          r.ov || r.srvOv
+            ? ovTitle(r.srvOv, r.ov)
             : (r.owner === "HSAD" ? "수수료KRW" : "매체비KRW + 수수료KRW") + " · 눌러서 수정"
         }
       >
@@ -311,7 +314,7 @@ export function SettlementView({ D }: { D: SettlePayload }) {
   const gTax = sumKrw(rows, "taxKrwAdj")
   const gFee = sumKrw(rows, "billFeeAdj")
   const nIssued = rows.filter((r) => r.issuedMonth).length
-  const nOv = rows.filter((r) => r.ov).length
+  const nOv = rows.filter((r) => r.ov || r.srvOv).length
 
   const editRow = editId ? all.find((r) => r.id === editId) : undefined
   const cols = mon ? COLS : [MON_COL, ...COLS]
@@ -325,7 +328,7 @@ export function SettlementView({ D }: { D: SettlePayload }) {
             k: `${monLab} 세금계산서 발행 금액`,
             v: f0(gTax),
             u: "원",
-            s: `${eok(gTax)}억원${nOv ? ` · 수기 수정 ${nOv}행 반영` : ""}`,
+            s: `${eok(gTax)}억원${nOv ? ` · 수기 수정 ${nOv}행 반영됨` : ""}`,
           },
           {
             k: "와이즈버즈 수수료",

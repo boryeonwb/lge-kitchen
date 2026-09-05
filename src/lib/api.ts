@@ -44,6 +44,26 @@ export interface SettleRow {
   issuedMonth: number | null
   /** WB(자사계정) | HSAD(광고주계정) */
   owner: string
+  /**
+   * 내부 정산 대시보드에서 사람이 고친 기록. 금액은 위 billMedia·billFee·taxKrw 에
+   * **이미 반영돼 있고**, 여기 오는 건 누가 왜 고쳤는지다. 여럿이 같이 보는 화면이라
+   * 근거가 숫자와 같이 가야 한다.
+   */
+  taxOv: TaxOvRec | null
+}
+
+/** 세금계산서 수기 수정 한 건 (내부 대시보드에서 저장된 것) */
+export interface TaxOvRec {
+  /** 비운 항목(null)은 자동 계산값을 쓴 것 */
+  media: number | null
+  fee: number | null
+  /** 구버전 기록 — 발행 총액만 저장돼 있던 값 */
+  value: number | null
+  by: string
+  reason: string
+  at: string
+  owner: string | null
+  history: Array<Omit<TaxOvRec, "history">>
 }
 
 export interface SettlePayload {
