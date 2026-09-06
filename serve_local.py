@@ -4,8 +4,11 @@
 배포(k8s)에서는 nginx 가 `dist/` 를 서빙하고 `/api` 를 정산 백엔드로 넘긴다. 로컬에도
 같은 구조가 필요한데 Docker 없이 돌려야 해서, 그 두 가지만 하는 서버를 stdlib 로 짰다.
 
-    python serve_local.py                 # 0.0.0.0:3100, /api → 127.0.0.1:8000
+    python serve_local.py                 # 0.0.0.0:3100, /api → 127.0.0.1:8010
     python serve_local.py 3200 http://127.0.0.1:8123
+
+정산 백엔드 기본 포트가 8010 인 이유는 8000 을 내부 정산 대시보드가 쓰기 때문이다.
+둘 다 켜면 나중에 뜬 쪽이 포트를 못 잡고 죽는데, 화면은 껍데기만 떠서 알아채기 어렵다.
 
 **0.0.0.0 에 붙는다** — 같은 망의 다른 PC 에서 `http://<이 PC IP>:3100` 으로 열 수 있다.
 dev 서버(`npm run dev`)는 localhost 에만 붙어 혼자만 볼 수 있었다.
@@ -23,7 +26,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 DIST = os.path.join(HERE, "dist")
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 3100
-API = (sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:8000").rstrip("/")
+API = (sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:8010").rstrip("/")
 
 # 운영 탭은 미디어믹스 시트·Criteo 시트·SMBS 환율을 받아 오느라 오래 걸릴 수 있다
 TIMEOUT = 300

@@ -43,7 +43,9 @@ function InvTotalCell({ row, v }: { row: SettleRow; v: number }) {
   return (
     <>
       <InvoiceCheck list={row.invoices} onOpen={() => open(row)} />
-      <span title="이 라인이 속한 인보이스(계정)의 발행 총액">{f2(v)}</span>
+      <span title="이 라인이 근거로 든 인보이스 문서의 발행 총액 — 한 문서에 여러 나라가 실리면(메타·핀터레스트·DV360) 그 나라들 금액이 모두 들어 있습니다">
+        {f2(v)}
+      </span>
     </>
   )
 }

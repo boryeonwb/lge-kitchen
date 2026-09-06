@@ -45,7 +45,7 @@ npm install
 npm run dev            # → http://127.0.0.1:3100
 ```
 
-`/api` 는 `http://127.0.0.1:8000`(정산 백엔드)으로 프록시됩니다. 다른 포트로 띄웠으면:
+`/api` 는 `http://127.0.0.1:8010`(정산 백엔드)으로 프록시됩니다. 다른 포트로 띄웠으면:
 
 ```bash
 API_TARGET=http://127.0.0.1:8123 npm run dev
@@ -54,7 +54,7 @@ API_TARGET=http://127.0.0.1:8123 npm run dev
 백엔드 쪽은 `lge-billing-dashboard/backend` 에서 띄웁니다(경로 설정은 그쪽 README 참고):
 
 ```bash
-uvicorn main:app --port 8000
+uvicorn main:app --port 8010
 ```
 
 `npm run typecheck` · `npm run build` 로 검사·빌드합니다.
@@ -66,7 +66,7 @@ uvicorn main:app --port 8000
 
 ```bash
 npm run build            # dist/ 만들기 (한 번만, 코드를 고치면 다시)
-python serve_local.py    # 0.0.0.0:3100 · /api → 127.0.0.1:8000
+python serve_local.py    # 0.0.0.0:3100 · /api → 127.0.0.1:8010
 ```
 
 정산 백엔드도 같이 띄워야 한다 (이 앱은 숫자를 직접 가지지 않는다):
@@ -76,7 +76,7 @@ cd <lge-billing-dashboard>\backend
 set LGE_WORK=C:\lgwork
 set LGE_STATE=C:\lgwork\adv_state
 set LGE_PROJECT=C:\lgwork
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+python -m uvicorn main:app --host 0.0.0.0 --port 8010
 ```
 
 둘을 한 번에 띄우는 **`로컬_실행.bat`** 이 같은 폴더에 있다 (경로는 파일 상단에서 수정).

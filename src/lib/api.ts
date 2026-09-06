@@ -122,6 +122,8 @@ export interface OpsRow {
   ctryKor: string
   phase: string
   med: string
+  /** Ad Product — 품의예산 시트의 상품 구분. 한 라인에 여럿이면 `/` 로 잇는다 */
+  prods: string
   /** 각 국가 현지 날짜 */
   start: string
   end: string
